@@ -18,9 +18,9 @@ VitalMatch prioritizes speed, reliability, and simplicity by intelligently match
 ---
 
 ## Project Url(s)
-Figma Url:
-Frontend URL: 
-Backend API:
+- Figma Url:
+- Frontend URL: 
+- Backend API:
 
 ---
 
