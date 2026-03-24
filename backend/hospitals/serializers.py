@@ -15,7 +15,7 @@ class HospitalRegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField()
     rc_number = serializers.CharField()
     phone_number = serializers.CharField()
-    hospital_type = serializers.CharField()
+    hospital_type = serializers.ChoiceField(choices=['government', 'private'])
 
     latitude = serializers.FloatField(required=True)
     longitude = serializers.FloatField(required=True)
@@ -27,17 +27,12 @@ class HospitalRegisterSerializer(serializers.Serializer):
         return value
     
     def validate_phone_number(self, value):
-    # Check format
-        if not re.match(r'^\+?\d{7,15}$', value):
-            raise serializers.ValidationError(
-            "Phone number must contain 7–15 digits and optional + prefix"
-        )
-
-    # Check uniqueness in HospitalProfile table
+        if value:
+            if not re.match(r'^\+?\d{7,15}$', value):
+                raise serializers.ValidationError("Phone number must contain 7-15 digits, optional + prefix")
         if HospitalProfile.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError(
-            "This phone number is already registered"
-        )
+            raise serializers.ValidationError("This phone number is already registered")
+        return value
     
     def validate_password(self, value):
         if len(value) < 6:
