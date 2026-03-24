@@ -20,7 +20,7 @@ VitalMatch prioritizes speed, reliability, and simplicity by intelligently match
 ## Project Url(s)
 - Figma Url:
 - Frontend URL: 
-- Backend Service: [text](https://vitalmatch-backend-service.onrender.com)
+- Backend Service: [URL](https://vitalmatch-backend-service.onrender.com)
 
 ---
 

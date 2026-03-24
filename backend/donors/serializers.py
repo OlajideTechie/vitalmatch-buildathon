@@ -104,7 +104,8 @@ class DonorRegisterSerializer(serializers.Serializer):
             has_donated_before=validated_data['has_donated_before'],
             latitude=validated_data['latitude'],
             longitude=validated_data['longitude'],
-            is_verified=True
+            is_verified=True,
+            is_available=True
         )
 
         return user
@@ -127,5 +128,6 @@ class DonorProfileLoginSerializer(serializers.ModelSerializer):
         model = DonorProfile
         fields = [
             'full_name',
-            'is_verified'
+            'is_verified',
+            'is_available'
         ]

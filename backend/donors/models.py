@@ -45,5 +45,7 @@ class DonorProfile(models.Model):
     reward_points = models.IntegerField(default=0)
     is_verified = models.BooleanField(default=False)
 
+    is_available = models.BooleanField(default=True) 
+
     def __str__(self):
         return self.user.username
