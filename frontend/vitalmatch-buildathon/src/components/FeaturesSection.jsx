@@ -1,6 +1,6 @@
 import FirstSymbol from "../assets/IMG-20260324-WA0002-removebg-preview.png";
 import SecondSymbol from "../assets/IMG-20260324-WA0004-removebg-preview.png";
-import ThirdSymbol from "../assets/Group 10.png";
+import ThirdSymbol from "../assets/IMG-20260324-WA0003-removebg-preview.png";
 
 
 function FeaturesSection() {
@@ -9,21 +9,21 @@ function FeaturesSection() {
       bgColor: 'bg-[#B8E5DD]',
       title: 'Smart Donor Matching',
       uppercaseTitle: true,
-      description: 'Our intelligent algorithm finds the perfect match in seconds pairing compatible blood types with nearby, available donors so hospitals get the help they need, exactly when they need it.',
+      description: 'We match the right donors instantly using blood type, location, and reliability.',
       imageUrl: FirstSymbol
     },
     {
       bgColor: 'bg-[#CEDBFD]',
       title: 'Availability Tracking',
       uppercaseTitle: true,
-      description: "The system only sends notifications when you're available, preventing spam and ensuring hospitals reach donors who can actually help right now.",
+      description: "Donors control their status so hospitals reach people who are ready to respond.",
       imageUrl: SecondSymbol
     },
     {
       bgColor: 'bg-[#FFCCCC]',
       title: 'Emergency Aware Priority', 
       uppercaseTitle: true,
-      description: 'When every second counts, BloodConnect knows. Emergency requests jump to the front of the line with instant notifications and priority matching to save critical time.',
+      description: 'Urgent requests are pushed first so critical cases get faster attention.',
       imageUrl: ThirdSymbol
     }
   ];
@@ -37,7 +37,7 @@ function FeaturesSection() {
             Why Hospitals Choose VitalMatch
           </h2>
           <p className="text-gray-300 text-sm sm:text-base md:text-lg">
-            Every feature is designed to save time, build trust, and connect the right donors to patients who need them most.
+            Designed to save time, improve response, and deliver results when it matters most.
           </p>
         </div>
 

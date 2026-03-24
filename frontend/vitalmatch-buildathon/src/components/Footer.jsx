@@ -26,12 +26,7 @@ export default function Footer() {
           {/* Disclaimer Text */}
           <div className="text-center text-sm font-medium text-white/90 max-w-225 leading-relaxed">
             <p>
-              VitalMatch is a technology platform that connects verified hospitals with voluntary blood donors. We do not provide
-              medical services, conduct blood testing, or operate blood banks. Hospital verification conducted in accordance with
-              applicable healthcare regulations. All personal data processed in compliance with the Nigeria Data Protection Regulation.
-              Medical activities including blood collection, testing, and transfusion are performed by licensed healthcare facilities.
-              Vitalmatch is not responsible for medical decisions or outcomes. In emergencies, contact emergency medical services
-              immediately.
+              VitalMatch connects verified hospitals with voluntary blood donors. We do not provide medical services. All procedures are handled by licensed professionals.
             </p>
           </div>
           

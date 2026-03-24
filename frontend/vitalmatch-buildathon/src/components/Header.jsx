@@ -1,5 +1,4 @@
 import VitalMatchLogo from "../assets/vitalmatch-logo.png";
-import Button from "./Button";
 import {Link} from "react-router-dom";
 import { useEffect, useState } from "react";
 import {Menu, X} from "lucide-react";
@@ -25,7 +24,7 @@ function Header() {
 
   const [open, setOpen] = useState(false);
     return (
-        <header className={`w-full fixed top-0 left-0 z-50 ${scrolled ? "bg-white/10 backdrop-blur-md shadow-lg" : "bg-transparent"}`}>
+        <header className={`w-full fixed top-0 left-0 z-50 ${scrolled ? "bg-[#07052C]/10 backdrop-blur-md shadow-lg" : "bg-transparent"}`}>
             <div className="md:flex items-center justify-between px-4 md:px-12 py-6">
                 <div className="cursor-pointer flex items-center ">
                     <img src={VitalMatchLogo} alt="vitalmatch-logo" className="h-14 w-20" />

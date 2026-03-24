@@ -7,27 +7,27 @@ function FAQs() {
   const faqs = [
     {
       question: "Can I decline a blood request?",
-      answer: "Yes, you have complete freedom to accept or decline any requests."
+      answer: "Yes. You can accept or decline based on your availability."
     },
     {
       question: "What happens after I accept a request?",
-      answer: "Accept Request and Hospital Calls (30 mins) Coordinate Time to  arrive at Hospital"
+      answer: "The hospital is notified and will contact you with next steps."
     },
     {
       question: "What is VitalMatch?",
-      answer: "VitalMatch is a hospital-verified blood matching platform that connects patients in urgent need of blood with compatible donors in real-time."
+      answer: "A platform that connects hospitals with blood donors in real time."
     },
     {
       question: "How fast is the matching process?",
-      answer: "VitalMatch matching is INSTANT - typically under 60 seconds from request to donor notification."
+      answer: "Matches happen within seconds. Responses are under 5 minutes."
     },
     {
       question: "How do I become a donor on Vital Match?",
-      answer: "Becoming a VitalMatch donor is quick and easy - just 2 simple steps, sign up and complete your profile"
+      answer: "Sign up, verify your details, and start receiving requests."
     },
     {
       question: "Will my personal information be shared publicly?",
-      answer: "No! Your personal information remains private and is NEVER shared publicly."
+      answer: "No. Your details stay private until you accept a request."
     }
   ];
 

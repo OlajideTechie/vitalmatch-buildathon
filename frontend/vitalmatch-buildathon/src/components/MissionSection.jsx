@@ -19,7 +19,7 @@ function MissionSection() {
             Two Journeys, ONE MISSION - SAVING LIVES
           </h1>
           <p className="text-gray-300 text-lg leading-relaxed">
-            Whether you're a hospital in urgent need or a donor ready to help, VitalMatch removes the guesswork from blood matching. Our intelligent platform handles the complexity—proximity, compatibility, availability—so you can focus on what matters: saving lives.
+            VitalMatch makes it easy for hospitals to get help and for donors to respond quickly.
           </p>
         </div>
 
@@ -35,19 +35,19 @@ function MissionSection() {
             <FeatureItem 
               icon={<FilePlus2 className="w-6 h-6 text-red-500" />}
               title="Create a Blood Request"
-              description="Hospital creates a verified request with blood type, units needed, and urgency level. The system immediately begins searching for compatible donors."
+              description="Enter key details and submit in seconds."
             />
             
             <FeatureItem 
               icon={<Target className="w-6 h-6 text-red-500" />}
               title="Get Instant Matches"
-              description="Our smart algorithm finds compatible, nearby, and available donors in seconds. View details distance, availability, and compatibility."
+              description="The system finds nearby and reliable donors fast."
             />
             
             <FeatureItem 
               icon={<ShieldCheck className="w-6 h-6 text-red-500" />}
               title="Connect & Save Lives"
-              description="Matched donors receive instant notifications. When they accept, you get their contact details to coordinate the donation."
+              description="Once a donor accepts, you move forward immediately."
             />
           </div>
 
@@ -60,19 +60,19 @@ function MissionSection() {
             <FeatureItem 
               icon={<UserPlus className="w-6 h-6 text-emerald-400" />}
               title="Sign up & stay ready"
-              description="Register with blood type and location. Update availability anytime to control when you receive requests."
+              description="Register and update your availability anytime."
             />
             
             <FeatureItem 
               icon={<Bell className="w-6 h-6 text-emerald-400" />}
               title="Receive Match Alerts"
-              description="Get instant notifications when nearby hospitals need your blood type. See distance, urgency, hospital details."
+              description="Get notified when your blood type is needed nearby."
             />
             
             <FeatureItem 
               icon={<Activity className="w-6 h-6 text-emerald-400" />}
               title="Accept & Save Lives"
-              description="Choose to accept or decline. Accept, and the hospital contacts you directly. You are in full control."
+              description="Choose to respond and make a real impact."
             />
           </div>
 
