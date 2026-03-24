@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     'donors',
     'hospitals',
     'bloodrequest',
-    'authentication',
 ]
 
 MIDDLEWARE = [
@@ -160,7 +159,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
-AUTH_USER_MODEL = 'authentication.User'
+AUTH_USER_MODEL = 'users.User'
 
 # Spectacular (API schema) settings
 SPECTACULAR_SETTINGS = {
