@@ -28,7 +28,7 @@ function MissionSection() {
           
           {/* Left Column - For Hospital */}
           <div className="space-y-8">
-            <span className="inline-block px-5 py-2 bg-[#fbd5d5] text-red-900 text-sm font-bold uppercase tracking-wider rounded-md mb-4">
+            <span className="inline-block px-5 py-2 bg-[#FFCCCC] text-red-900 text-sm font-bold uppercase tracking-wider rounded-md mb-4">
               For Hospital
             </span>
 
@@ -53,7 +53,7 @@ function MissionSection() {
 
           {/* Right Column - For Donor */}
           <div className="space-y-8">
-            <span className="inline-block px-5 py-2 bg-[#bbf7d0] text-green-900 text-sm font-bold uppercase tracking-wider rounded-md mb-4">
+            <span className="inline-block px-5 py-2 bg-[#B8E5DD] text-green-900 text-sm font-bold uppercase tracking-wider rounded-md mb-4">
               For Donor
             </span>
 
