@@ -21,7 +21,7 @@ function LandingPage() {
                     </h1>
                     
                     <p className="text-white text-lg md:text-xl leading-relaxed mb-10 max-w-2xl">
-                        VitalMatch is a hospital verified '2blood matching platform that connects the right donors to the right patient intelligently and real time. No delays, no guesswork. Just fast trusted blood access when lives depend on it.
+                        VitalMatch is a hospital verified blood matching platform that connects the right donors to the right patient intelligently and real time. No delays, no guesswork. Just fast trusted blood access when lives depend on it.
                     </p>
                     
                     <button className="px-10 py-4 text-lg font-semibold text-white bg-[#3B82F6] hover:bg-blue-600 rounded-full shadow-lg shadow-blue-500/30 transition-all hover:scale-105">
