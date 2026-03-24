@@ -35,6 +35,7 @@ class HospitalRegisterView(APIView):
 
             return Response({
                 "message": "Hospital registered successfully",
+                "api_message": getattr(user, "api_message", ""),
                 "access_token": str(access),
                 "refresh_token": str(refresh),
                 "expires_in": int(expires_in.total_seconds()),

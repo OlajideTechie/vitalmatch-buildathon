@@ -214,8 +214,7 @@ LOGGING = {
     },
     'loggers': {
         'django': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': True},
-        'authentication': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
-        'upload': {'handlers': ['console', 'error_file'], 'level': 'ERROR', 'propagate': False},
+        'hospitals': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
     },
 }
 
@@ -233,3 +232,14 @@ CORS_ALLOW_CREDENTIALS = False
 # Secure cookies (disable for local dev)
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+
+
+# Interswitch API Settings
+INTERSWITCH_AUTH_URL = os.getenv("INTERSWITCH_AUTH_URL")
+INTERSWITCH_CLIENT_ID = os.getenv("INTERSWITCH_CLIENT_ID")
+INTERSWITCH_CLIENT_SECRET = os.getenv("INTERSWITCH_CLIENT_SECRET")
+INTERSWITCH_VERIFY_CAC_URL = os.getenv("INTERSWITCH_VERIFY_CAC_URL")
+
+
+# Sandbox test company name for InterSwitch API
+INTERSWITCH_SANDBOX_TEST_NAME = os.getenv("INTERSWITCH_SANDBOX_TEST_NAME")
