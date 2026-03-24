@@ -29,7 +29,7 @@ function FeaturesSection() {
   ];
 
   return (
-    <section className="py-10 px-6 lg:px-8 font-sans">
+    <section id="features" className="py-10 px-6 lg:px-8 font-sans">
       <div className="max-w-7xl mx-auto">
         
         <div className="text-center mb-16 max-w-3xl mx-auto">

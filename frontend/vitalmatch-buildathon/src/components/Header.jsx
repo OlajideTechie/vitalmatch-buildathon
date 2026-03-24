@@ -16,10 +16,10 @@ function Header() {
   }, []);
 
   const Links = [
-        {name: "Features", link: "/"},
-        {name: "How It Works", link: "/"},
-        {name: "About Us", link: "/"},
-        {name: "FAQ", link: "/"},
+        {name: "Features", link: "#features"},
+        {name: "How It Works", link: "#how-it-works"},
+        {name: "About Us", link: "#about-us"},
+        {name: "FAQ", link: "#faq"},
     ]
 
   const [open, setOpen] = useState(false);
@@ -32,18 +32,19 @@ function Header() {
                 <div className="absolute right-4 top-10 cursor-pointer md:hidden" onClick={() => setOpen(prev => !prev)}>
                     {open ? <X /> : <Menu />}
                 </div>
-                <ul className={`md:flex md:items-center md:pb-0 pb-12 absolute md:static md:z-auto z-40 left-0 w-full md:w-auto md:pl-0 pl-9 transition-all duration-500 ease-in ${open ? "top-19 opacity-100 bg-white" : "-top-122.5"} md:opacity-100 opacity-0`}>
+                <ul className={`md:flex md:items-center md:pb-0 pb-12 absolute md:static md:z-auto z-40 left-0 w-full md:w-auto md:pl-0 pl-9 transition-all duration-500 ease-in ${open ? "top-25 opacity-100 md:bg-transparent bg-white" : "-top-122.5"} md:opacity-100 opacity-0`}>
 
                 {Links.map((link) => {
                     return (
                         <li key={link.name} className="md:ml-8 text-xl md:my-0 my-7">
-                            <a href={link.link} className="text-white hover:text-gray-400 duration-500">{link.name}</a>
+                            <a href={link.link} className="md:text-white text-black hover:text-gray-400 duration-500">{link.name}</a>
                         </li>
                     )
                 })}
-
-                <Link to="/login" className={`bg-[#3B82F6] text-white cursor-pointer py-2 px-6 md:my-0 rounded-full text-xl md:ml-8 hover:bg-blue-700 duration-500`}>Login</Link>
-                <Link to="/onboarding" className={`bg-[#3B82F6] text-white cursor-pointer py-2 px-6 md:my-0 rounded-full text-xl md:ml-8 hover:bg-blue-700 duration-500`}>Get Started</Link>
+                <div className="flex gap-4 md:gap-0">
+                    <Link to="/login" className={`bg-[#3B82F6] text-white cursor-pointer py-2 px-6 md:my-0 rounded-full text-xl md:ml-8 hover:bg-blue-700 duration-500`}>Login</Link>
+                    <Link to="/onboarding" className={`bg-[#3B82F6] text-white cursor-pointer py-2 px-6 md:my-0 rounded-full text-xl md:ml-8 hover:bg-blue-700 duration-500`}>Get Started</Link>
+                </div>
                 </ul>
             </div>
         </header>

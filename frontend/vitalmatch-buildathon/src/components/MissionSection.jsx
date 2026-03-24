@@ -9,7 +9,7 @@ import {
 
 function MissionSection() {
   return (
-    <div className="p-6 flex items-center justify-center font-sans">
+    <div id="how-it-works" className="p-6 flex items-center justify-center font-sans">
       {/* Main Container */}
       <div className="max-w-6xl w-full bg-[#121137] rounded-3xl p-10 md:p-10">
         

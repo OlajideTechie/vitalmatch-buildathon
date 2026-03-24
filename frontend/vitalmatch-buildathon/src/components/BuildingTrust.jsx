@@ -6,9 +6,9 @@ export default function BuildingTrust() {
       <div className="bg-white  w-full rounded-2xl flex flex-col-reverse md:flex-row gap-6">
 
         {/* Content Section */}
-        <div className="md:w-1/2 w-full flex flex-col justify-center md:text-left text-center md:py-8 md:px-16 p-6 pb-0">
+        <div className="md:w-1/2 w-full flex flex-col justify-center md:text-left text-center md:py-8 md:px-16 p-6 pt-0 pb-0">
 
-          <h2 className="text-2xl md:text-3xl font-bold text-[#0E1C37] leading-snug mb-4">
+          <h2 className="text-[32px] font-bold text-[#0E1C37] leading-snug mb-4">
             Building Trust in Every Drop
           </h2>
 

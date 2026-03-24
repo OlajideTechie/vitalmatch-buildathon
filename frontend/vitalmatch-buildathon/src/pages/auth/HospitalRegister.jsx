@@ -14,7 +14,7 @@ function HospitalRegister() {
       <div className="hidden lg:flex w-1/2 bg-[#0A0A1F] p-12 flex-col justify-between text-white">
         <div>
           <div className="text-[#C84A4A] font-bold text-lg mb-20">
-            BloodConnect
+            VitalMatch
           </div>
           <h1 className="text-5xl font-bold mb-6 leading-tight">
             Let's Get You<br />Started!

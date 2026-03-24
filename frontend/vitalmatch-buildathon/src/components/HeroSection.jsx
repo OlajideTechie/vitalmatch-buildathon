@@ -2,7 +2,7 @@ import {Link} from 'react-router-dom';
 
 function HeroSection() {
     return (
-        <main className="flex flex-col-reverse md:flex-row items-center mt-20 justify-between px-6 md:px-12 py-24 md:py-20">
+        <main id="about-us" className="flex flex-col-reverse md:flex-row items-center mt-20 justify-between px-6 md:px-12 py-24 md:py-20">
                 
             {/* Left Column: Text Content */}
             <div className="md:w-3/5 z-10 relative text-center md:text-left">
