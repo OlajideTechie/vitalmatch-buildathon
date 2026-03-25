@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react'; // 1. Imported Eye and EyeOff
 import VitalMatchLogo from "../../assets/vitalmatch-logo.png";
+import { getUserCoordinates, getAddressFromCoords } from '../../utils/locationUtils';
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 function DonorRegister() {
   const [isBloodGroupOpen, setIsBloodGroupOpen] = useState(false);
@@ -8,7 +11,10 @@ function DonorRegister() {
   const [selectedBloodGroup, setSelectedBloodGroup] = useState('');
   const [selectedGenotype, setSelectedGenotype] = useState('');
 
-  // 1. Form and Error States
+  // 2. Added state for password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -16,66 +22,46 @@ function DonorRegister() {
     nin: '',
     gender: '',
     donatedBefore: '',
-    state: '',
-    address: ''
+    password: '',
+    confirmPassword: '',
+    stateText: '',
+    addressText: '',
+    coordinates: {
+      lat: null,
+      lon: null
+    }
   });
   const [errors, setErrors] = useState({});
 
   const bloodGroups = ['A+', 'O+', 'B+', 'O-', 'A-', 'AB', 'B-'];
   const genotypes = ['AA', 'AS', 'SS', 'AC', 'SC'];
 
-  const getUserLocation = () => {
-        if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
-            return;
-        }
+  const handleGetLocation = async () => {
+    try {
+      const coords = await getUserCoordinates();
+      const locationDetails = await getAddressFromCoords(coords.lat, coords.lon);
+      
+      setFormData((prev) => ({
+        ...prev,
+        coordinates: coords,
+        stateText: locationDetails.state,
+        addressText: locationDetails.address
+      }));
+      
+      setErrors((prev) => ({ ...prev, location: '' }));
+    } catch (error) {
+      alert(error.message || "Unable to retrieve your location");
+    }
+  };
 
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-            const { latitude, longitude } = position.coords;
-
-            console.log("Coords:", latitude, longitude);
-
-            // Call reverse geocoding API here
-            fetchLocationDetails(latitude, longitude);
-            },
-            (error) => {
-            console.error(error);
-            alert("Unable to retrieve your location");
-            }
-        );
-    };
-
-    const fetchLocationDetails = async (lat, lon) => {
-        try {
-            const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-            );
-            const data = await res.json();
-
-            const state = data.address.state || '';
-            const address = data.display_name || '';
-
-            setFormData((prev) => ({
-            ...prev,
-            state,
-            address
-            }));
-        } catch (err) {
-            console.error("Error fetching location details:", err);
-        }
-        };
-  // Handle standard input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
-  // 2. Validation Logic
   const validateForm = () => {
     const newErrors = {};
     
@@ -93,28 +79,126 @@ function DonorRegister() {
     if (!selectedBloodGroup) newErrors.bloodGroup = "Please select a blood group";
     if (!selectedGenotype) newErrors.genotype = "Please select a genotype";
     if (!formData.donatedBefore) newErrors.donatedBefore = "Please select an option";
-    if (!formData.state.trim()) newErrors.state = "State is required";
-    if (!formData.address.trim()) newErrors.address = "Address is required";
+    
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!formData.coordinates.lat || !formData.coordinates.lon) {
+      newErrors.location = "Please provide your location using the button above";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      const payload = {
-        ...formData,
-        bloodGroup: selectedBloodGroup,
-        genotype: selectedGenotype
-      };
-      console.log("Form ready for submission:", payload);
-      // Proceed to the next step or API call here
-    }
-  };
+  e.preventDefault();
 
+  if (validateForm()) {
+    const payload = {
+      full_name: formData.fullName,
+      phone_number: formData.phone,
+      email: formData.email,
+      password: formData.password,
+      confirm_password: formData.confirmPassword,
+      nin: formData.nin,
+      gender: formData.gender,
+      blood_group: selectedBloodGroup,
+      genotype: selectedGenotype,
+      has_donated_before: formData.donatedBefore === "yes",
+      latitude: formData.coordinates.lat,
+      longitude: formData.coordinates.lon,
+    };
+
+    mutation.mutate(payload);
+  }
+};
+
+    const registerDonor = async (payload) => {
+        const res = await fetch(
+            "https://vitalmatch-backend-service.onrender.com/api/auth/donor/register",
+            {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+            }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            // Attach backend response to error
+            const error = new Error(data.message || "Registration failed");
+            error.response = { data };
+            throw error;
+        }
+
+        return data;
+    };
+
+    const mutation = useMutation({
+        mutationFn: registerDonor,
+
+        onSuccess: (data) => {
+            toast.success("Registration successful 🎉");
+            console.log("Success:", data);
+        },
+
+        onError: async (error) => {
+            console.error("Error:", error);
+
+            // If backend sends structured validation errors
+            if (error?.response?.data?.errors) {
+            const backendErrors = error.response.data.errors;
+
+            // Map backend errors to form errors
+            const formattedErrors = {};
+
+            Object.keys(backendErrors).forEach((key) => {
+                const message = backendErrors[key][0];
+
+                // Map backend keys → frontend keys
+                const fieldMap = {
+                full_name: "fullName",
+                phone_number: "phone",
+                email: "email",
+                password: "password",
+                confirm_password: "confirmPassword",
+                nin: "nin",
+                gender: "gender",
+                blood_group: "bloodGroup",
+                genotype: "genotype",
+                };
+
+                const frontendKey = fieldMap[key];
+
+                if (frontendKey) {
+                formattedErrors[frontendKey] = message;
+                }
+
+                // Show toast for each error
+                toast.error(message);
+            });
+
+            setErrors((prev) => ({ ...prev, ...formattedErrors }));
+            } else {
+            // Generic fallback
+            toast.error(error.message || "Something went wrong");
+            }
+        },
+    });
+
+    
   return (
-    // 3. Layout Fix: h-screen and overflow-hidden prevent the whole page from scrolling
     <div className="flex h-screen w-full font-sans overflow-hidden bg-white">
       
       {/* Left Pane - Fixed Branding & Info */}
@@ -127,14 +211,12 @@ function DonorRegister() {
             Let's Get You<br />Started!
           </h1>
           <p className="text-gray-300 text-sm leading-relaxed max-w-md">
-            Join thousands of hospitals and donors making blood access faster, safer, and more transparent. Whether you're a hospital looking to save critical time in emergencies or a blood donor ready to make real difference, VitalMatch makes it simple to start saving lives today
+            Join thousands of hospitals and donors making blood access faster, safer, and more transparent.
           </p>
         </div>
       </div>
 
       <div className="w-full lg:w-1/2 h-full overflow-y-auto scroll-smooth">
-        
-        {/* Added min-h-full so the form stays centered vertically if the screen is very tall */}
         <div className="min-h-full flex flex-col items-center justify-center p-8 py-12">
           <div className="w-full max-w-md">
             
@@ -149,6 +231,7 @@ function DonorRegister() {
 
             <form className="space-y-5" onSubmit={handleSubmit}>
               
+              {/* Existing Fields (Name, Phone, Email, NIN) */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-[#797B8B]">Full Name</label>
                 <input 
@@ -165,7 +248,7 @@ function DonorRegister() {
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-[#797B8B]">Phone Number</label>
                 <input 
-                  type="tel" // Changed to 'tel' to prevent up/down arrows in some browsers
+                  type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
@@ -201,7 +284,53 @@ function DonorRegister() {
                 {errors.nin && <span className="text-red-500 text-xs mt-0.5">{errors.nin}</span>}
               </div>
 
-              {/* Gender Select */}
+              {/* 3. Updated Password Field with Toggle */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-[#797B8B]">Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Create a password"
+                    className={`w-full border rounded-lg p-3.5 pr-12 text-sm text-[#1C1C1C] placeholder-gray-400 focus:outline-none focus:ring-1 ${errors.password ? 'border-red-400 focus:ring-red-300' : 'border-gray-200 focus:ring-gray-300'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errors.password && <span className="text-red-500 text-xs mt-0.5">{errors.password}</span>}
+              </div>
+
+              {/* 4. Updated Confirm Password Field with Toggle */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-[#797B8B]">Confirm Password</label>
+                <div className="relative">
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    placeholder="Confirm your password"
+                    className={`w-full border rounded-lg p-3.5 pr-12 text-sm text-[#1C1C1C] placeholder-gray-400 focus:outline-none focus:ring-1 ${errors.confirmPassword ? 'border-red-400 focus:ring-red-300' : 'border-gray-200 focus:ring-gray-300'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && <span className="text-red-500 text-xs mt-0.5">{errors.confirmPassword}</span>}
+              </div>
+
+              {/* Gender, Blood Group, Genotype... */}
               <div className="flex flex-col gap-1 relative">
                 <label className="text-sm font-medium text-[#797B8B]">Gender</label>
                 <select 
@@ -219,7 +348,6 @@ function DonorRegister() {
                 {errors.gender && <span className="text-red-500 text-xs mt-0.5">{errors.gender}</span>}
               </div>
 
-              {/* Custom Blood Group Select */}
               <div className="flex flex-col gap-1 relative">
                 <label className="text-sm font-medium text-[#797B8B]">Blood Group</label>
                 <div 
@@ -252,7 +380,6 @@ function DonorRegister() {
                 )}
               </div>
 
-              {/* Custom Genotype Select */}
               <div className="flex flex-col gap-1 relative">
                 <label className="text-sm font-medium text-[#797B8B]">Genotype</label>
                 <div 
@@ -302,45 +429,46 @@ function DonorRegister() {
                 <ChevronDown className="absolute right-4 top-[70%] -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
                 {errors.donatedBefore && <span className="text-red-500 text-xs mt-0.5">{errors.donatedBefore}</span>}
               </div>
-                <button
+
+              {/* Location Handling */}
+              <div className="flex flex-col gap-2 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-[#797B8B]">Location Details</label>
+                  <button
                     type="button"
-                    onClick={getUserLocation}
-                    className="text-sm text-blue-500 hover:underline self-start"
-                >
+                    onClick={handleGetLocation}
+                    className="text-sm text-[#3B82F6] font-medium hover:underline"
+                  >
                     Use my current location
-                </button>
-
-              <div className="flex flex-col gap-1">
+                  </button>
+                </div>
+                
                 <input 
                   type="text" 
-                  name="state"
-                  value={formData.state}
-                  onChange={handleInputChange}
+                  readOnly
+                  value={formData.stateText}
                   placeholder="State" 
-                  className={`w-full border rounded-lg p-3.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 ${errors.state ? 'border-red-400 focus:ring-red-300' : 'border-gray-200 focus:ring-gray-300'}`}
+                  className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3.5 text-sm text-gray-700 placeholder-gray-400 cursor-not-allowed"
                 />
-                {errors.state && <span className="text-red-500 text-xs mt-0.5">{errors.state}</span>}
-              </div>
 
-              <div className="flex flex-col gap-1">
                 <input 
                   type="text" 
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
+                  readOnly
+                  value={formData.addressText}
                   placeholder="Address" 
-                  className={`w-full border rounded-lg p-3.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 ${errors.address ? 'border-red-400 focus:ring-red-300' : 'border-gray-200 focus:ring-gray-300'}`}
+                  className="w-full border border-gray-200 bg-gray-50 rounded-lg p-3.5 text-sm text-gray-700 placeholder-gray-400 cursor-not-allowed"
                 />
-                {errors.address && <span className="text-red-500 text-xs mt-0.5">{errors.address}</span>}
+                
+                {errors.location && <span className="text-red-500 text-xs mt-0.5">{errors.location}</span>}
               </div>
 
-              {/* Submit Button */}
               <div className="pt-4">
-                <button 
-                  type="submit" 
-                  className="w-full bg-[#3B82F6] text-white font-semibold rounded-full py-4 mt-2 hover:bg-blue-600 transition-colors shadow-sm"
+                <button
+                    type="submit"
+                    disabled={mutation.isPending}
+                    className="w-full bg-[#3B82F6] text-white font-semibold rounded-full py-4 mt-2 hover:bg-blue-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Continue
+                    {mutation.isPending ? "Submitting..." : "Submit"}
                 </button>
               </div>
 
