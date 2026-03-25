@@ -25,6 +25,20 @@ class BloodRequest(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        # Auto-update status based on fulfilled_units before saving
+        if self.fulfilled_units == 0:
+            self.status = "open"
+        elif self.fulfilled_units < self.required_units:
+            self.status = "partial"
+        else:
+            self.status = "completed"
+
+        super().save(*args, **kwargs) 
+    
+    def __str__(self):
+        return f"{self.hospital.name} - {self.blood_group} ({self.status})"
+
 
 class DonorAcceptance(models.Model):
     STATUS_CHOICES = [

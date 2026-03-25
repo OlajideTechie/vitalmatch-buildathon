@@ -30,4 +30,5 @@ urlpatterns = [
 
     path('api/auth/', include('hospitals.urls')),
     path('api/auth/', include('donors.urls')),
+    path('api/', include('bloodrequest.urls')),
 ]
