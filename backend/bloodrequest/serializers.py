@@ -36,4 +36,11 @@ class DonorAcceptanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DonorAcceptance
         fields = '__all__'
-        
+
+
+class DonorInfoSerializer(serializers.Serializer):
+    full_name = serializers.CharField()
+    email = serializers.EmailField()
+    phone_number = serializers.CharField()
+    blood_group = serializers.CharField()
+    genotype = serializers.CharField()
