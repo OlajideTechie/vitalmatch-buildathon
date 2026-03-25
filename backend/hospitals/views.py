@@ -213,53 +213,60 @@ Confirm Donors who have successfully donated
     tags=["Hospitals"]
 )
 class ConfirmDonationView(APIView):
-    serializer_class = ConfirmDonationSerializer
+    """
+    Hospital confirms that a donor's blood donation has been completed.
+    Donor is set back to available, rewarded, and a notification is sent.
+    """
     permission_classes = [IsAuthenticated, IsHospital]
 
     def post(self, request):
-        # Get the hospital performing the confirmation
         hospital = HospitalProfile.objects.get(user=request.user)
         acceptance_id = request.data.get("acceptance_id")
 
         # Fetch the donor acceptance record
-        acceptance = DonorAcceptance.objects.select_related(
-            "donor", "request"
-        ).get(id=acceptance_id)
+        try:
+            acceptance = DonorAcceptance.objects.select_related(
+                "donor", "request"
+            ).get(id=acceptance_id)
+        except DonorAcceptance.DoesNotExist:
+            return Response(
+                {"error": "Donor acceptance record not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         blood_request = acceptance.request
 
         # Ensure hospital owns the blood request
         if blood_request.hospital != hospital:
-            return Response({"error": "Unauthorized"}, status=403)
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
         # Prevent over-confirmation
         if blood_request.fulfilled_units >= blood_request.required_units:
-            return Response({"error": "Request already completed"}, status=400)
+            return Response({"error": "Request already completed"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Update acceptance status
-        acceptance.status = "confirmed"
+        acceptance.status = "accepted"
         acceptance.save()
 
-        # Update blood request progress
+        # Update blood request fulfillment
         blood_request.fulfilled_units += 1
-        blood_request.update_status()
+        blood_request.status
         blood_request.save()
 
-        # Update donor stats (MVP: donor stays available)
+        # Update donor stats and set back online
         donor = acceptance.donor
         donor.reward_points += 1
-        donor.successful_donations += 1
-        donor.availability = True  # Always available for MVP
+        donor.successful_donation += 1
+        donor.is_available = True  # back online
         donor.save()
 
-        # Send notification to donor
+        # Notify the donor
         Notification.objects.create(
             user=donor.user,
             title="Donation Confirmed",
             message="Your blood donation has been confirmed. Thank you!"
         )
 
-        # Return response to hospital
         return Response({
             "message": "Donation confirmed",
             "status": blood_request.status,
