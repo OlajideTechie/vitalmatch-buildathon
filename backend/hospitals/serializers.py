@@ -94,7 +94,7 @@ class HospitalRegisterSerializer(serializers.Serializer):
             hospital_type=validated_data['hospital_type'],
             latitude=validated_data['latitude'],
             longitude=validated_data['longitude'],
-            is_verified=True  # always True for demo purposes
+            is_verified=True
         )
         
          # Add API message to response
@@ -124,3 +124,7 @@ class HospitalProfileLoginSerializer(serializers.ModelSerializer):
             'hospital_type',
             'is_verified'
         ]
+
+
+class ConfirmDonationSerializer(serializers.Serializer):
+    acceptance_id = serializers.UUIDField()

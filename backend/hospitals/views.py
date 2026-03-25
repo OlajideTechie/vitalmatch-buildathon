@@ -9,15 +9,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from donors.models import DonorProfile
+from notifications.models import Notification
+from bloodrequest.models import DonorAcceptance
 
 from .serializers import ( 
     HospitalRegisterSerializer, HospitalLoginSerializer,
-    HospitalProfileFullSerializer, HospitalProfileLoginSerializer
+    HospitalProfileFullSerializer, HospitalProfileLoginSerializer,
+    ConfirmDonationSerializer
 )
 
 from bloodrequest.serializers import (
     BloodRequestProgressSerializer,
-    BloodRequestSerializer
+    BloodRequestSerializer, DonorInfoSerializer
 )
 
 from drf_spectacular.utils import extend_schema
@@ -167,7 +170,8 @@ View Accepted donors for a request
     tags=["Hospitals"]
 )
 class BloodRequestAccepteddDonorsView(APIView):
-    permission_classes = [IsAuthenticated]
+    serializer_class = DonorInfoSerializer
+    permission_classes = [IsAuthenticated, IsHospital]
 
     class DonorPagination(PageNumberPagination):
         page_size = 10 
@@ -199,3 +203,72 @@ class BloodRequestAccepteddDonorsView(APIView):
         ]
 
         return paginator.get_paginated_response(data)
+    
+
+
+"""
+Confirm Donors who have successfully donated
+"""
+@extend_schema(
+    tags=["Hospitals"]
+)
+class ConfirmDonationView(APIView):
+    """
+    Hospital confirms that a donor's blood donation has been completed.
+    Donor is set back to available, rewarded, and a notification is sent.
+    """
+    permission_classes = [IsAuthenticated, IsHospital]
+
+    def post(self, request):
+        hospital = HospitalProfile.objects.get(user=request.user)
+        acceptance_id = request.data.get("acceptance_id")
+
+        # Fetch the donor acceptance record
+        try:
+            acceptance = DonorAcceptance.objects.select_related(
+                "donor", "request"
+            ).get(id=acceptance_id)
+        except DonorAcceptance.DoesNotExist:
+            return Response(
+                {"error": "Donor acceptance record not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        blood_request = acceptance.request
+
+        # Ensure hospital owns the blood request
+        if blood_request.hospital != hospital:
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        # Prevent over-confirmation
+        if blood_request.fulfilled_units >= blood_request.required_units:
+            return Response({"error": "Request already completed"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update acceptance status
+        acceptance.status = "accepted"
+        acceptance.save()
+
+        # Update blood request fulfillment
+        blood_request.fulfilled_units += 1
+        blood_request.status
+        blood_request.save()
+
+        # Update donor stats and set back online
+        donor = acceptance.donor
+        donor.reward_points += 1
+        donor.successful_donation += 1
+        donor.is_available = True  # back online
+        donor.save()
+
+        # Notify the donor
+        Notification.objects.create(
+            user=donor.user,
+            title="Donation Confirmed",
+            message="Your blood donation has been confirmed. Thank you!"
+        )
+
+        return Response({
+            "message": "Donation confirmed",
+            "status": blood_request.status,
+            "fulfilled_units": blood_request.fulfilled_units
+        }, status=status.HTTP_200_OK)
