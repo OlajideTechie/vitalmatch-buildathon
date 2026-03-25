@@ -4,14 +4,25 @@ from django.contrib.auth import authenticate
 from rest_framework import status, permissions
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from datetime import datetime, timezone
+from common.hospital_permissions import IsHospital
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
+from donors.models import DonorProfile
 
 from .serializers import ( 
     HospitalRegisterSerializer, HospitalLoginSerializer,
     HospitalProfileFullSerializer, HospitalProfileLoginSerializer
 )
 
+from bloodrequest.serializers import (
+    BloodRequestProgressSerializer,
+    BloodRequestSerializer
+)
+
 from drf_spectacular.utils import extend_schema
 from .models import HospitalProfile
+from bloodrequest.models import BloodRequest
 
 
 @extend_schema(tags=["Hospitals"])
@@ -93,3 +104,98 @@ class HospitalLoginView(APIView):
             return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+"""
+List all blood requests for a hospital
+"""
+@extend_schema(
+    tags=["Hospitals"]
+)
+class HospitalBloodRequestListView(APIView):
+    permission_classes = [IsAuthenticated, IsHospital]
+
+    def get(self, request):
+        hospital = request.user.hospitalprofile
+        blood_requests = BloodRequest.objects.filter(hospital=hospital).order_by('-created_at')
+        data = [
+            {
+                "id": br.id,
+                "blood_group": br.blood_group,
+                "genotype": br.genotype,
+                "required_units": br.required_units,
+                "fulfilled_units": br.fulfilled_units,
+                "status": br.status,
+                "created_at": br.created_at,
+            } 
+            for br in blood_requests
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+    
+
+"""
+View single request details (status & progress)
+"""
+@extend_schema(
+    tags=["Hospitals"]
+)
+class HospitalBloodRequestDetailView(APIView):
+    serializer_class = BloodRequestProgressSerializer
+    permission_classes = [IsAuthenticated, IsHospital]
+
+    def get(self, request, request_id=None):
+        hospital = request.user.hospitalprofile
+        
+        if request_id:
+            # Detail view: single request
+            blood_request = get_object_or_404(BloodRequest, id=request_id, hospital=hospital)
+            serializer = self.serializer_class(blood_request)
+
+        else:
+            # List view: all requests for this hospital
+            blood_requests = BloodRequest.objects.filter(hospital=hospital).order_by('-created_at')
+            serializer = self.serializer_class(blood_requests, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+"""
+View Accepted donors for a request
+"""
+@extend_schema(
+    tags=["Hospitals"]
+)
+class BloodRequestAccepteddDonorsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    class DonorPagination(PageNumberPagination):
+        page_size = 10 
+        page_size_query_param = 'page_size'
+        max_page_size = 50
+
+    def get(self, request, request_id):
+        hospital = request.user.hospitalprofile
+        blood_request = get_object_or_404(BloodRequest, id=request_id, hospital=hospital)
+        
+        # Filter donors dynamically
+        donors_qs = DonorProfile.objects.filter(
+            is_available=True,
+            blood_group=blood_request.blood_group,
+            genotype=blood_request.genotype
+        )
+
+        paginator = self.DonorPagination()
+        paginated_donors = paginator.paginate_queryset(donors_qs, request)
+
+        data = [
+            {
+                "full_name": donor.full_name,
+                "email": donor.user.email,
+                "phone_number": donor.phone_number,
+                "blood_group": donor.blood_group,
+                "genotype": donor.genotype,
+            } for donor in paginated_donors
+        ]
+
+        return paginator.get_paginated_response(data)

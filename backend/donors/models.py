@@ -47,5 +47,7 @@ class DonorProfile(models.Model):
 
     is_available = models.BooleanField(default=True) 
 
+    successful_donation = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         return self.user.username
