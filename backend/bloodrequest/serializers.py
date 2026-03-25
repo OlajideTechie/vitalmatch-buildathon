@@ -44,3 +44,9 @@ class DonorInfoSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     blood_group = serializers.CharField()
     genotype = serializers.CharField()
+
+
+class RetryMatchSerializer(serializers.Serializer):
+    donor_id = serializers.IntegerField()
+    distance_km = serializers.FloatField()
+    reason = serializers.CharField()
