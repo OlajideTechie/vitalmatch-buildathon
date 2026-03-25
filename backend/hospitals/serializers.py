@@ -124,3 +124,7 @@ class HospitalProfileLoginSerializer(serializers.ModelSerializer):
             'hospital_type',
             'is_verified'
         ]
+
+
+class ConfirmDonationSerializer(serializers.Serializer):
+    acceptance_id = serializers.UUIDField()
