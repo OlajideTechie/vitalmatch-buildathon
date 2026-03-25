@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react'; // 1. Imported Eye and EyeOff
+import { ChevronDown, ChevronUp, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import VitalMatchLogo from "../../assets/vitalmatch-logo.png";
 import { getUserCoordinates, getAddressFromCoords } from '../../utils/locationUtils';
 import { useMutation } from "@tanstack/react-query";
@@ -10,8 +10,8 @@ function DonorRegister() {
   const [isGenotypeOpen, setIsGenotypeOpen] = useState(false);
   const [selectedBloodGroup, setSelectedBloodGroup] = useState('');
   const [selectedGenotype, setSelectedGenotype] = useState('');
+  const [globalError, setGlobalError] = useState('');
 
-  // 2. Added state for password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -100,6 +100,7 @@ function DonorRegister() {
 
   const handleSubmit = (e) => {
   e.preventDefault();
+  setGlobalError('');
 
   if (validateForm()) {
     const payload = {
@@ -146,56 +147,72 @@ function DonorRegister() {
     };
 
     const mutation = useMutation({
-        mutationFn: registerDonor,
+    mutationFn: registerDonor,
 
-        onSuccess: (data) => {
-            toast.success("Registration successful 🎉");
-            console.log("Success:", data);
-        },
+    onSuccess: () => {
+      toast.success("Registration successful 🎉");
+    },
 
-        onError: async (error) => {
-            console.error("Error:", error);
+    onError: async (error) => {
+      const responseData = error?.response?.data;
+      const backendErrors = responseData?.errors || responseData;
 
-            // If backend sends structured validation errors
-            if (error?.response?.data?.errors) {
-            const backendErrors = error.response.data.errors;
+      if (backendErrors && typeof backendErrors === 'object') {
+        const formattedErrors = {};
+        let mappedAtLeastOneField = false;
 
-            // Map backend errors to form errors
-            const formattedErrors = {};
+        Object.keys(backendErrors).forEach((key) => {
+          // Skip if the key happens to be a generic global 'message' string
+          if (key === 'message' && typeof backendErrors[key] === 'string') return;
 
-            Object.keys(backendErrors).forEach((key) => {
-                const message = backendErrors[key][0];
+          mappedAtLeastOneField = true;
+          
+          const errorMessages = Array.isArray(backendErrors[key]) 
+            ? backendErrors[key] 
+            : [backendErrors[key]];
 
-                // Map backend keys → frontend keys
-                const fieldMap = {
-                full_name: "fullName",
-                phone_number: "phone",
-                email: "email",
-                password: "password",
-                confirm_password: "confirmPassword",
-                nin: "nin",
-                gender: "gender",
-                blood_group: "bloodGroup",
-                genotype: "genotype",
-                };
+          const fieldMap = {
+            full_name: "fullName",
+            phone_number: "phone",
+            email: "email",
+            password: "password",
+            confirm_password: "confirmPassword",
+            nin: "nin",
+            gender: "gender",
+            blood_group: "bloodGroup",
+            genotype: "genotype",
+          };
 
-                const frontendKey = fieldMap[key];
+          const frontendKey = fieldMap[key] || key; 
+          formattedErrors[frontendKey] = errorMessages.join(", ");
 
-                if (frontendKey) {
-                formattedErrors[frontendKey] = message;
-                }
+          // Show a toast, replacing underscores with spaces for readability
+          errorMessages.forEach((msg) => {
+             const cleanKey = key.replace('_', ' ').toUpperCase();
+             toast.error(`${cleanKey}: ${msg}`);
+          });
+        });
 
-                // Show toast for each error
-                toast.error(message);
-            });
-
-            setErrors((prev) => ({ ...prev, ...formattedErrors }));
-            } else {
-            // Generic fallback
-            toast.error(error.message || "Something went wrong");
-            }
-        },
-    });
+        // If we found specific field errors, set them and STOP execution here
+        if (mappedAtLeastOneField) {
+          setErrors((prev) => ({ ...prev, ...formattedErrors }));
+          return; 
+        }
+      } 
+      
+      // 3. Fallback for a generic global message (if no field errors were found)
+      if (responseData?.message) {
+        setGlobalError(responseData.message);
+        toast.error(responseData.message);
+      } 
+      // 4. Ultimate Fallback for network crashes
+      else {
+        const fallbackError = error.message || "An unexpected error occurred. Please try again later.";
+        setGlobalError(fallbackError);
+        toast.error("Registration failed.");
+      }
+    },
+  });
 
     
   return (
@@ -228,7 +245,15 @@ function DonorRegister() {
             <p className="text-[#434248] text-sm mb-8">
               Let's finish setting up your donor account. This information helps us send you the right requests at the right time.
             </p>
-
+            {globalError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-red-800">Registration Failed</h3>
+                    <p className="text-sm text-red-600 mt-1">{globalError}</p>
+                    </div>
+                </div>
+            )}
             <form className="space-y-5" onSubmit={handleSubmit}>
               
               {/* Existing Fields (Name, Phone, Email, NIN) */}
