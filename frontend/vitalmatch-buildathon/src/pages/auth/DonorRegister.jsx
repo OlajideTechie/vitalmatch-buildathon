@@ -4,6 +4,7 @@ import VitalMatchLogo from "../../assets/vitalmatch-logo.png";
 import { getUserCoordinates, getAddressFromCoords } from '../../utils/locationUtils';
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import {Link} from "react-router-dom";
 
 function DonorRegister() {
   const [isBloodGroupOpen, setIsBloodGroupOpen] = useState(false);
@@ -228,7 +229,7 @@ function DonorRegister() {
             Let's Get You<br />Started!
           </h1>
           <p className="text-gray-300 text-sm leading-relaxed max-w-md">
-            Join thousands of hospitals and donors making blood access faster, safer, and more transparent.
+            Join thousands of hospitals and donors making blood access faster, safer, and more transparent. Whether you’re a hospital looking to save critical time in emergencies or a blood donor ready to make real difference, VitalMatch makes it simple to start saving lives today
           </p>
         </div>
       </div>
@@ -367,7 +368,6 @@ function DonorRegister() {
                   <option value="" disabled>Select gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
-                  <option value="other">Other</option>
                 </select>
                 <ChevronDown className="absolute right-4 top-[70%] -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
                 {errors.gender && <span className="text-red-500 text-xs mt-0.5">{errors.gender}</span>}
@@ -499,7 +499,7 @@ function DonorRegister() {
 
               <div className="text-sm font-medium mt-2">
                 <p className="mb-2">
-                  Already have an account? <a href="#" className="text-[#3B82F6] hover:underline">Sign in</a>
+                  Already have an account? <Link to="/login" className="text-[#3B82F6] hover:underline">Sign in</Link>
                 </p>
                 <a href="#" className="text-[#3B82F6] hover:underline">Need Help?</a>
               </div>
