@@ -52,8 +52,13 @@ class DonorProfileSerializer(serializers.ModelSerializer):
             genotype=obj.genotype,
         )
 
+        # Exclude any requests the donor has already acted on (accepted, confirmed, or ignored)
+        acted_request_ids = DonorAcceptance.objects.filter(
+            donor=obj
+        ).values_list('request_id', flat=True)
+
         pending_counts =  matched_requests.exclude(
-            donoracceptance__donor=obj
+            id__in=acted_request_ids
         ).count()
 
         return {

@@ -9,8 +9,8 @@ urlpatterns = [
         name="hospital-blood-request-retry-match"
     ),
     path(
-        "donor/accept-request/<uuid:request_id>",
+        "donor/requests/<uuid:request_id>/respond",
         DonorAcceptRequestView.as_view(),
-        name="donor-accept-request"
+        name="donor-request-respond"
     ),
 ]

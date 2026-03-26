@@ -46,7 +46,7 @@ class DonorAcceptance(models.Model):
     STATUS_CHOICES = [
         ('accepted', 'Accepted'),
         ('confirmed', 'Confirmed'),
-        ('not_needed', 'Not Needed'),
+        ('ignored', 'Ignored'),
     ]
 
     donor = models.ForeignKey(DonorProfile, on_delete=models.CASCADE)
