@@ -11,59 +11,59 @@ function CreateRequests() {
     const [selectedBloodGroup, setSelectedBloodGroup] = useState('');
     const [selectedGenotype, setSelectedGenotype] = useState('');
   
-  const bloodGroups = ['A+', 'O+', 'B+', 'O-', 'A-', 'AB', 'B-'];
-  const genotypes = ['AA', 'AS', 'SS', 'AC', 'SC'];
-  const { token } = useAuth();
-  const [formData, setFormData] = useState({
-    requiredUnits: '',
-  });
-  const [errors, setErrors] = useState({});
+  	const bloodGroups = ['A+', 'O+', 'B+', 'O-', 'A-', 'AB', 'B-'];
+	const genotypes = ['AA', 'AS', 'SS', 'AC', 'SC'];
+	const { token } = useAuth();
+	const [formData, setFormData] = useState({
+		requiredUnits: '',
+	});
+	const [errors, setErrors] = useState({});
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
+	const handleInputChange = (e) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({ ...prev, [name]: value }));
+		if (errors[name]) {
+		setErrors((prev) => ({ ...prev, [name]: '' }));
+		}
+	};
 
-  const validateForm = () => {
-    const newErrors = {};
+	const validateForm = () => {
+		const newErrors = {};
 
-    if (!formData.requiredUnits.trim()) newErrors.requiredUnits = "Required units is required";
-    if (!selectedBloodGroup) newErrors.bloodGroup = "Please select a blood group";
-    if (!selectedGenotype) newErrors.genotype = "Please select a genotype";
+		if (!formData.requiredUnits.trim()) newErrors.requiredUnits = "Required units is required";
+		if (!selectedBloodGroup) newErrors.bloodGroup = "Please select a blood group";
+		if (!selectedGenotype) newErrors.genotype = "Please select a genotype";
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
-  setGlobalError('');
-  console.log(token);
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		setGlobalError('');
+		console.log(token);
 
-  if (validateForm()) {
-    const payload = {
-      blood_group: selectedBloodGroup,
-      genotype: selectedGenotype,
-      required_units: Number(formData.requiredUnits),
-    };
+		if (validateForm()) {
+			const payload = {
+				blood_group: selectedBloodGroup,
+				genotype: selectedGenotype,
+				required_units: Number(formData.requiredUnits),
+			};
 
-    mutation.mutate(payload);
-  }
-};
+			mutation.mutate(payload);
+		}
+	};
 
-    const registerHospital = async (payload) => {
+    const createRequests = async (payload) => {
         const res = await fetch(
             "https://vitalmatch-backend-service.onrender.com/api/hospital/create-request",
             {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${token}`,
+				},
+				body: JSON.stringify(payload),
             }
         );
 
@@ -79,35 +79,33 @@ function CreateRequests() {
         return data;
     };
     
-      const mutation = useMutation({
-        mutationFn: registerHospital,
-        onSuccess: () => {
-          toast.success("Request created successfully");
-        },
+	const mutation = useMutation({
+		mutationFn: createRequests,
+		onSuccess: () => {
+			toast.success("Request created successfully");
+	},
 
-      onError: async (error) => {
+    onError: async (error) => {
         const responseData = error?.response?.data;
         const backendErrors = responseData?.errors || responseData;
 
         if (backendErrors && typeof backendErrors === 'object') {
-          const formattedErrors = {};
-          let mappedAtLeastOneField = false;
+			const formattedErrors = {};
+			let mappedAtLeastOneField = false;
 
-          Object.keys(backendErrors).forEach((key) => {
-            // Skip if the key happens to be a generic global 'message' string
-            if (key === 'message' && typeof backendErrors[key] === 'string') return;
+			Object.keys(backendErrors).forEach((key) => {
+				// Skip if the key happens to be a generic global 'message' string
+				if (key === 'message' && typeof backendErrors[key] === 'string') return;
 
-            mappedAtLeastOneField = true;
+				mappedAtLeastOneField = true;
             
-            const errorMessages = Array.isArray(backendErrors[key]) 
-              ? backendErrors[key] 
-              : [backendErrors[key]];
+            const errorMessages = Array.isArray(backendErrors[key]) ? backendErrors[key] : [backendErrors[key]];
 
-            const fieldMap = {
-              blood_group: "bloodGroup",
-              genotype: "genotype",
-              required_units: "requiredUnits",
-            };
+			const fieldMap = {
+				blood_group: "bloodGroup",
+				genotype: "genotype",
+				required_units: "requiredUnits",
+			};
 
             const frontendKey = fieldMap[key] || key; 
             formattedErrors[frontendKey] = errorMessages.join(", ");
@@ -117,28 +115,28 @@ function CreateRequests() {
               const cleanKey = key.replace('_', ' ').toUpperCase();
               toast.error(`${cleanKey}: ${msg}`);
             });
-          });
+    });
 
           // If we found specific field errors, set them and STOP execution here
-          if (mappedAtLeastOneField) {
+        if (mappedAtLeastOneField) {
             setErrors((prev) => ({ ...prev, ...formattedErrors }));
             return; 
-          }
-        } 
+        }
+    } 
       
       // 3. Fallback for a generic global message (if no field errors were found)
-      if (responseData?.message) {
+    if (responseData?.message) {
         setGlobalError(responseData.message);
         toast.error(responseData.message);
-      } 
+    } 
       // 4. Ultimate Fallback for network crashes
-      else {
+    else {
         const fallbackError = error.message || "An unexpected error occurred. Please try again later.";
         setGlobalError(fallbackError);
         toast.error("Registration failed.");
-      }
+    }
     },
-  });
+});
     return (
     <div className="w-full h-full overflow-y-auto scroll-smooth">
         <div className="min-h-full md:p-20 p-8 py-12">
@@ -152,8 +150,8 @@ function CreateRequests() {
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                     <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                     <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-red-800">Registration Failed</h3>
-                    <p className="text-sm text-red-600 mt-1">{globalError}</p>
+						<h3 className="text-sm font-semibold text-red-800">Registration Failed</h3>
+						<p className="text-sm text-red-600 mt-1">{globalError}</p>
                     </div>
                 </div>
             )}

@@ -110,7 +110,7 @@ function ViewRequests() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-6 md:p-8 text-gray-800 font-sans">
+    <div className="flex-1 bg-gray-50/50 p-6 md:p-8 text-gray-800 font-sans">
       <div className="max-w-6xl mx-auto">
         
         {/* HEADER */}

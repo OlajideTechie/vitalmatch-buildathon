@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Search, Bell, LayoutDashboard, PlusSquare, 
   List, HelpCircle, Settings, LogOut, Menu, X,
   CheckSquare, GitPullRequest
 } from 'lucide-react';
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "../context/AuthContext";
+import { fetchProfile } from "../services/auth";
 import { Outlet, Link } from "react-router-dom";
+import { getUserCoordinates, getAddressFromCoords } from '../utils/locationUtils';
 
 function NavItem({ icon, label, to}) {
   return (
@@ -18,6 +22,40 @@ function NavItem({ icon, label, to}) {
 function HospitalLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [location, setLocation] = useState('Loading...');
+
+    useEffect(() => {
+        const fetchLocation = async () => {
+            try {
+                const { lat, lon } = await getUserCoordinates();
+                const { state } = await getAddressFromCoords(lat, lon);
+
+                setLocation(state || 'Unknown location');
+            } catch (err) {
+                console.error(err);
+                setLocation('Location unavailable');
+            }
+    };
+
+    fetchLocation();}, []);
+
+    const { token } = useAuth();
+    
+    const { data, isLoading } = useQuery({
+        queryKey: ['profile'],
+        queryFn: () => fetchProfile(token),
+        enabled: !!token,
+    });
+
+
+    const getInitials = (name = '') => {
+        return name
+            .split(' ')
+            .filter(Boolean)
+            .map(word => word[0].toUpperCase())
+            .slice(0, 2) // limit to 2 letters
+            .join('');
+    };
 
     const navItems = [
         { label: "Dashboard", icon: LayoutDashboard, to: "/hospital-dashboard" },
@@ -49,12 +87,26 @@ function HospitalLayout() {
                 
                 <div className="px-4 py-6 shrink-0">
                     <div className="bg-[#14183E] rounded-xl p-4 flex flex-col items-center justify-center border border-gray-700">
-                        <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white font-bold mb-3">NH</div>
-                        <h2 className="text-white font-semibold">National Hospital</h2>
-                        <p className="text-gray-400 text-sm mb-2">Abuja</p>
-                        <span className="bg-[#E5F9F1] text-[#05A660] text-xs font-semibold px-3 py-1 rounded-full flex items-center">
-                            Verified <span className="ml-1">✓</span>
-                        </span>
+                        {/* <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white font-bold mb-3">{getInitials(data.full_name) || 'H'}</div> */}
+                        <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white font-bold mb-3">H</div>
+                        {/* <h2 className="text-white font-semibold">{data.full_name || 'Hospital'}</h2> */}
+                        <h2 className="text-white font-semibold">Hospital</h2>
+                        <p className="text-gray-400 text-sm mb-2">{location}</p>
+                        {/* <span
+                            className={`${
+                                data.is_verified
+                                ? "bg-[#E5F9F1] text-[#05A660]"
+                                : "bg-[#F4F7FB] text-[#3B82F6]"
+                            } text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1`}
+                        >
+                            {data.is_verified ? (
+                                <>
+                                Verified <span>✓</span>
+                                </>
+                            ) : (
+                                'Not Verified'
+                            )}
+                        </span> */}
                     </div>
                 </div>
 
