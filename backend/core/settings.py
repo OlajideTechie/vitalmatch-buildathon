@@ -174,7 +174,10 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT': True,
     "SECURITY": [{"jwtAuth": []}],
     "COMPONENT_SPLIT_REQUEST": True,
-    'ENUM_NAME_OVERRIDES': {},
+    'ENUM_NAME_OVERRIDES': {
+       "hospitals.models.DonorAcceptance.status": "DonorAcceptanceStatusEnum",
+       "hospitals.models.BloodRequest.status": "BloodRequestStatusEnum",
+    },
     "COMPONENTS": {
         "securitySchemes": {
             "jwtAuth": {
