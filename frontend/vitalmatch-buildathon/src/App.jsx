@@ -12,7 +12,7 @@ import HospitalLayout from "./components/HospitalLayout";
 import DonorDashboard from "./pages/donor/DonorDashboard";
 import HospitalDashboard from "./pages/hospital/HospitalDashboard";
 import CreateRequests from "./pages/hospital/CreateRequests";
-import ViewRequests from "./pages/hospital/ViewRequests";
+import ViewRequest from "./pages/hospital/ViewRequest";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
@@ -54,6 +54,7 @@ function App() {
             <Route path="/onboarding" element={<VitalMatchOnboarding />} />
             <Route path="/hospital-register" element={<HospitalRegister />} />
             <Route path="/donor-register" element={<DonorRegister />} />
+            <Route path="/hospital/requests/:id" element={<ViewRequest />} />
 
             {/* Protected Routes */}
             <Route
@@ -79,7 +80,6 @@ function App() {
             >
               <Route index element={<HospitalDashboard />} />
               <Route path="create-request" element={<CreateRequests />} />
-              <Route path="view-all-requests" element={<ViewRequests />} />
             </Route>
 
             {/* Optional: Catch-all route */}

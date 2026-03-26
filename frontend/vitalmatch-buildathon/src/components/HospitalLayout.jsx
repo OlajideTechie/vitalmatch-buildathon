@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
-import { fetchProfile } from "../services/auth";
+import { fetchProfile, fetchNotifications } from "../services/auth";
 import { Outlet, Link } from "react-router-dom";
 import { getUserCoordinates, getAddressFromCoords } from '../utils/locationUtils';
+import { formatTime } from "../utils/formatTime";
 
 function NavItem({ icon, label, to}) {
   return (
@@ -46,7 +47,27 @@ function HospitalLayout() {
         queryFn: () => fetchProfile(token),
         enabled: !!token,
     });
+    
+    const {
+        data: notificationsData,
+        isLoading: notificationsLoading,
+        } = useQuery({
+        queryKey: ["notifications"],
+        queryFn: () => fetchNotifications(token),
+        enabled: !!token,
+    });
 
+    const notificationsArray = Array.isArray(notificationsData) ? notificationsData : notificationsData?.data || [];
+
+    const notifications = (notificationsArray).map((notif) => ({
+        id: notif.id,
+        title: notif.title,
+        message: notif.message,
+        time: formatTime(notif.created_at),
+        unread: !notif.is_read,
+    }));
+
+    const unreadCount = notifications.filter(n => n.unread).length;
 
     const getInitials = (name = '') => {
         return name
@@ -60,17 +81,9 @@ function HospitalLayout() {
     const navItems = [
         { label: "Dashboard", icon: LayoutDashboard, to: "/hospital-dashboard" },
         { label: "Create Emergency Request", icon: PlusSquare, to: "/hospital-dashboard/create-request" },
-        { label: "View All Requests", icon: List, to: "/hospital-dashboard/view-all-requests" },
+        { label: "View All Requests", icon: List },
         { label: "Help Center", icon: HelpCircle },
         { label: "Setting", icon: Settings },
-    ];
-
-    const notifications = [
-        { id: 1, type: 'sent', message: "Your blood request has been sent to a potential donor. We'll notify you once they respond.", unread: true },
-        { id: 2, type: 'accepted', message: "Your blood request has been accepted by a donor. Proceed to coordinate with them for the donation.", unread: false },
-        { id: 3, type: 'sent', message: "Your blood request has been sent to a potential donor. We'll notify you once they respond.", unread: false },
-        { id: 4, type: 'accepted', message: "Your blood request has been accepted by a donor. Proceed to coordinate with them for the donation.", unread: false },
-        { id: 5, type: 'sent', message: "Your blood request has been sent to a potential donor. We'll notify you once they respond.", unread: false },
     ];
 
     return (
@@ -87,26 +100,34 @@ function HospitalLayout() {
                 
                 <div className="px-4 py-6 shrink-0">
                     <div className="bg-[#14183E] rounded-xl p-4 flex flex-col items-center justify-center border border-gray-700">
-                        {/* <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white font-bold mb-3">{getInitials(data.full_name) || 'H'}</div> */}
-                        <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white font-bold mb-3">H</div>
-                        {/* <h2 className="text-white font-semibold">{data.full_name || 'Hospital'}</h2> */}
+                        {/* Wait for data to exist before getting initials, default to 'H' */}
+                        <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white font-bold mb-3">
+                            {isLoading ? '...' : getInitials(data?.full_name) || 'H'}
+                        </div>
+
+                        {/* Safely render the name, fallback to 'Hospital' */}
+                        <h2 className="text-white font-semibold">
+                            {isLoading ? 'Loading...' : data?.full_name || 'Hospital'}
+                        </h2>
                         <h2 className="text-white font-semibold">Hospital</h2>
                         <p className="text-gray-400 text-sm mb-2">{location}</p>
-                        {/* <span
+                        <span
                             className={`${
-                                data.is_verified
+                                data?.is_verified
                                 ? "bg-[#E5F9F1] text-[#05A660]"
                                 : "bg-[#F4F7FB] text-[#3B82F6]"
-                            } text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1`}
+                            } text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 mt-2`}
                         >
-                            {data.is_verified ? (
+                            {isLoading ? (
+                                'Loading status...'
+                            ) : data?.is_verified ? (
                                 <>
-                                Verified <span>✓</span>
+                                    Verified <span>✓</span>
                                 </>
                             ) : (
                                 'Not Verified'
                             )}
-                        </span> */}
+                        </span>
                     </div>
                 </div>
 
@@ -155,7 +176,9 @@ function HospitalLayout() {
                         className="p-2.5 bg-white rounded-lg shadow-sm border border-gray-100 text-gray-500 hover:text-blue-500 transition-colors relative"
                     >
                         <Bell size={20} />
-                        <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                        {unreadCount > 0 && (
+                            <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                        )}
                     </button>
                 </header>
                 {/* Add Content */}
@@ -185,23 +208,36 @@ function HospitalLayout() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
-                    {notifications.map((notif) => (
+                    {notificationsLoading ? (
+                        <p className="text-sm text-gray-500">Loading notifications...</p>
+                    ) : notifications.length === 0 ? (
+                        <p className="text-sm text-gray-500">No notifications yet.</p>
+                    ) : (
+                        notifications.map((notif) => (
                         <div 
                             key={notif.id} 
-                            className={`flex items-start p-4 rounded-xl gap-4 ${notif.unread ? 'bg-gray-100/70' : 'bg-transparent'}`}
+                            className={`flex items-start p-4 rounded-xl gap-4 ${
+                            notif.unread ? 'bg-gray-100/70' : 'bg-transparent'
+                            }`}
                         >
                             <div className="mt-1 text-gray-400">
-                                {notif.type === 'sent' ? (
-                                    <GitPullRequest size={20} className="transform rotate-90" />
-                                ) : (
-                                    <CheckSquare size={20} />
-                                )}
+                            <CheckSquare size={20} />
                             </div>
-                            <p className="text-sm text-gray-700 leading-relaxed font-medium">
-                                {notif.message}
-                            </p>
+
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-gray-900">
+                                    {notif.title}
+                                </p>
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                    {notif.message}
+                                </p>
+                                <span className="text-xs text-gray-400 mt-1 block">
+                                    {notif.time}
+                                </span>
+                            </div>
                         </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </aside>
             

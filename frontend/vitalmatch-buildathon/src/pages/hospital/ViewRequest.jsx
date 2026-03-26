@@ -1,113 +1,116 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
+import { formatTime } from "../../utils/formatTime";
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { fetchDonorsByRequest, confirmDonation, fetchRequestById, retryMatching } from "../../services/auth";
 
-// --- API FETCHER FUNCTION ---
-const fetchDonors = async () => {
-  // Replace with how you get your token (e.g., localStorage, context)
-  const { token } = useAuth();
+function ViewRequest() {
+  	const [activeTab, setActiveTab] = useState("all");
+  	const [matchInsight, setMatchInsight] = useState(null);
+  	const { id } = useParams();
+	const { token } = useAuth();
+	const {
+		data: requestData,
+		isLoading: requestLoading,
+		isError: requestError,
+		error: requestErr,
+		} = useQuery({
+		queryKey: ["request", id],
+		queryFn: () => fetchRequestById(id, token),
+		enabled: !!id && !!token,
+	});
 
-  const response = await fetch("https://vitalmatch-backend-service.onrender.com/api/auth/hospital/blood-requests", {
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}` // Assuming you need auth based on your URL
-    }
-  });
+	const {
+		data: donorsData,
+			isLoading,
+			isError,
+			error,
+			// refetch,
+		} = useQuery({
+			queryKey: ["donors", id],
+			queryFn: () => fetchDonorsByRequest(id, token),
+			enabled: !!id && !!token,
+	});
+	const donorsArray = Array.isArray(donorsData) ? donorsData : donorsData?.data || [];
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch blood requests data.");
-  }
+	const donors = (donorsArray || []).map((donor) => ({
+		id: donor.id,
+		name: donor.full_name,
+		group: donor.blood_group,
+		genotype: donor.genotype,
+		contact: donor.phone_number,
+		email: donor.email,
+		distance: "—",
+		status: "pending",
+		isActive: false,
+	}));
 
-  const data = await response.json();
-  
-  // NOTE: Depending on your backend's exact JSON structure, you might need to map it here.
-  // Example: return data.requests[0].donors; 
-  return data.donors || data; 
-};
+	const filteredDonors = donors.filter((donor) => {
+		if (activeTab === "all") return true;
+		return donor.status === activeTab;
+	});
 
-function ViewRequests() {
-  const [activeTab, setActiveTab] = useState("all");
-  const queryClient = useQueryClient();
+	const isPageLoading = requestLoading || isLoading;
+	const isPageError = requestError || isError;
 
-  // --- 1. DATA FETCHING WITH REACT QUERY ---
-  const { 
-    data: donors = [], 
-    isLoading, 
-    isError, 
-    error,
-    refetch 
-  } = useQuery({
-    queryKey: ["bloodRequests"],
-    queryFn: fetchDonors,
-    // Optional: Keep data fresh without spamming the server
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+	const queryClient = useQueryClient();
 
-  // --- 2. OPTIMISTIC UPDATES WITH MUTATION ---
-  const toggleMutation = useMutation({
-    mutationFn: async (donorId) => {
-      // Replace with your actual PATCH/PUT endpoint to update donor status
-      // await fetch(`https://vitalmatch-backend-service.onrender.com/api/auth/hospital/donors/${donorId}/toggle`, { method: "PATCH" });
-      
-      // Simulating a network request for the UI
-      return new Promise(resolve => setTimeout(resolve, 500)); 
-    },
-    // When mutate is called:
-    onMutate: async (donorId) => {
-      // Cancel any outgoing refetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["bloodRequests"] });
+	const toggleMutation = useMutation({
+		mutationFn: ({ donorId }) =>
+			confirmDonation({ requestId: id, donorId, token }),
 
-      // Snapshot the previous value
-      const previousDonors = queryClient.getQueryData(["bloodRequests"]);
+		onSuccess: () => {
+			// 🔥 refresh donors list
+			queryClient.invalidateQueries(["donors", id]);
+		},
 
-      // Optimistically update to the new value
-      queryClient.setQueryData(["bloodRequests"], (old) => 
-        old?.map(donor => 
-          donor.id === donorId ? { ...donor, isActive: !donor.isActive } : donor
-        )
-      );
+		onError: (err) => {
+			console.error(err.message);
+		},
+	});
 
-      // Return a context object with the snapshotted value
-      return { previousDonors };
-    },
-    // If the mutation fails, use the context returned from onMutate to roll back
-    onError: (err, donorId, context) => {
-      queryClient.setQueryData(["bloodRequests"], context.previousDonors);
-      console.error("Failed to toggle donor status", err);
-    },
-    // Always refetch after error or success to ensure backend sync
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["bloodRequests"] });
-    },
-  });
+	const retryMutation = useMutation({
+		mutationFn: () => retryMatching({ requestId: id, token }),
 
-  const toggleActive = (id) => {
-    toggleMutation.mutate(id);
-  };
+		onSuccess: (data) => {
+			setMatchInsight(data.reason);
+			// 🔥 refresh donors + request
+			queryClient.invalidateQueries(["donors", id]);
+			queryClient.invalidateQueries(["request", id]);
+		},
 
-  // --- 3. FILTERING ---
-  const filteredDonors = donors.filter((donor) => {
-    if (activeTab === "all") return true;
-    return donor.status?.toLowerCase() === activeTab;
-  });
+		onError: (err) => {
+			console.error(err.message);
+		},
+	});
 
-  // --- 4. HELPER UI COMPONENTS ---
-  const getStatusBadge = (status) => {
-    const safeStatus = status?.toLowerCase() || "unknown";
-    const styles = {
-      accepted: "bg-green-100 text-green-700 border-green-200",
-      pending: "bg-amber-100 text-amber-700 border-amber-200",
-      declined: "bg-red-100 text-red-700 border-red-200",
-    };
-    const style = styles[safeStatus] || "bg-gray-100 text-gray-700 border-gray-200";
-    
-    return (
-      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${style} capitalize`}>
-        {status || "N/A"}
-      </span>
-    );
-  };
+	const getStatusBadge = (status) => {
+		const styles = {
+			accepted: "bg-green-100 text-green-600",
+			pending: "bg-yellow-100 text-yellow-600",
+			declined: "bg-red-100 text-red-600",
+		};
+
+		return (
+			<span className={`px-2 py-1 rounded text-xs font-semibold ${styles[status] || styles.pending}`}>
+				{status}
+			</span>
+		);
+	};
+
+	const request = requestData
+		? {
+			id: requestData.id,
+			bloodGroup: requestData.blood_group,
+			genotype: requestData.genotype,
+			requiredUnits: requestData.required_units,
+			fulfilledUnits: requestData.fulfilled_units,
+			status: requestData.status,
+			createdAt: requestData.created_at,
+		}
+		: null;
 
   return (
     <div className="flex-1 bg-gray-50/50 p-6 md:p-8 text-gray-800 font-sans">
@@ -121,18 +124,24 @@ function ViewRequests() {
           </div>
         </div>
 
+		{matchInsight && (
+			<div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
+				<strong>Matching Insight:</strong> {matchInsight}
+			</div>
+		)}
+
         {/* DETAILS CARD */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
             {[
-              { label: "Request ID", value: "BR-2026-101", highlight: true },
-              { label: "Blood Group", value: "O-", alert: true },
-              { label: "Genotype", value: "AA" },
-              { label: "Donors Needed", value: "10" },
-              { label: "Request Time", value: "2 hours ago" },
-              { label: "Status", value: "Ongoing", badge: true },
-              { label: "Patient Note", value: "Post-surgery, critical condition", fullSpan: true },
-            ].map((item, i) => (
+				{ label: "Request ID", value: request?.id, highlight: true },
+				{ label: "Blood Group", value: request?.bloodGroup, alert: true },
+				{ label: "Genotype", value: request?.genotype },
+				{ label: "Number of Units", value: request?.requiredUnits },
+				{ label: "Fulfilled Units", value: request?.fulfilledUnits },
+				{ label: "Request Time", value: formatTime(request?.createdAt) },
+				{ label: "Status", value: request?.status, badge: true },
+			].map((item, i) => (
               <div key={i} className={`flex flex-col space-y-1 ${item.fullSpan ? "col-span-2 md:col-span-4" : ""}`}>
                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{item.label}</span>
                 {item.badge ? (
@@ -150,12 +159,12 @@ function ViewRequests() {
         </div>
 
         {/* CONTENT AREA: STATE MANAGEMENT */}
-        {isLoading ? (
+        {isPageLoading ? (
           <div className="bg-white rounded-2xl p-16 shadow-sm border border-gray-100 flex flex-col items-center justify-center space-y-4">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             <p className="text-sm text-gray-500 font-medium">Fetching donor responses...</p>
           </div>
-        ) : isError ? (
+        ) : isPageError ? (
           <div className="bg-red-50 rounded-2xl p-8 border border-red-100 flex flex-col items-center text-center">
             <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
             <h3 className="text-lg font-semibold text-red-800 mb-1">Failed to load data</h3>
@@ -222,18 +231,12 @@ function ViewRequests() {
                         {/* TOGGLE */}
                         <td className="px-6 py-4 text-center">
                           <button
-                            onClick={() => toggleActive(row.id)}
-                            disabled={toggleMutation.isPending}
-                            className={`w-11 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                              row.isActive ? "bg-blue-600" : "bg-gray-300"
-                            } ${toggleMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
-                          >
-                            <span
-                              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-                                row.isActive ? "translate-x-5" : "translate-x-0"
-                              }`}
-                            />
-                          </button>
+								onClick={() => toggleMutation.mutate({ donorId: row.id })}
+								disabled={toggleMutation.isPending}
+								className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+							>
+								{toggleMutation.isPending ? "Confirming..." : "Confirm Donation"}
+							</button>
                         </td>
                       </tr>
                     ))}
@@ -270,9 +273,13 @@ function ViewRequests() {
             <p className="text-gray-500 text-sm mb-8 leading-relaxed">
               We are still searching our database. You'll be notified immediately once a matching donor is located in your radius.
             </p>
-            <button className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 transition-all">
-              Expand Search Radius
-            </button>
+            <button
+				onClick={() => retryMutation.mutate()}
+				disabled={retryMutation.isPending}
+				className="w-full bg-blue-600 text-white px-6 py-3 cursor-pointer rounded-xl font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50"
+			>
+				{retryMutation.isPending ? "Searching..." : "Expand Search Radius"}
+			</button>
           </div>
         )}
       </div>
@@ -280,4 +287,4 @@ function ViewRequests() {
   );
 }
 
-export default ViewRequests;
+export default ViewRequest;

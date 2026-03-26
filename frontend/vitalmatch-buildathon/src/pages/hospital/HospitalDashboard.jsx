@@ -1,10 +1,12 @@
 import { fetchProfile, fetchRequests } from "../../services/auth";
 import { useQuery } from "@tanstack/react-query";
 import { formatTime } from "../../utils/formatTime";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 function HospitalDashboard() {
     const { token } = useAuth();
+    const navigate = useNavigate();
 
     const { data: profileData, isLoading, error } = useQuery({
         queryKey: ['profile'],
@@ -131,7 +133,10 @@ function HospitalDashboard() {
                                 </div>
                             </div>
 
-                            <button className="w-full bg-[#F4F7FB] hover:bg-[#3B82F6] text-[#3B82F6] hover:text-white font-semibold py-3 rounded-xl transition-colors duration-200">
+                            <button 
+                                className="w-full text-[#F4F7FB] hover:bg-blue-700 bg-[#3B82F6] hover:text-white font-semibold py-3 rounded-xl transition-colors duration-200"
+                                onClick={() => navigate(`/hospital/requests/${req.id}`)}
+                            >
                                 View Details
                             </button>
                         </div>
