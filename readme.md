@@ -12,6 +12,7 @@
 VitalMatch is a real-time blood donor matching platform designed to connect hospitals with nearby, compatible donors quickly and efficiently.
 
 The system prioritizes proximity, donor reliability, and availability to ensure faster response times and increased chances of successful blood donations.
+
 ---
 
 ![Project Thumbnail](assets/thumbnail.png)
