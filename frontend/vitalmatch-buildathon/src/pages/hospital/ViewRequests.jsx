@@ -1,0 +1,283 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+
+// --- API FETCHER FUNCTION ---
+const fetchDonors = async () => {
+  // Replace with how you get your token (e.g., localStorage, context)
+  const { token } = useAuth();
+
+  const response = await fetch("https://vitalmatch-backend-service.onrender.com/api/auth/hospital/blood-requests", {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}` // Assuming you need auth based on your URL
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch blood requests data.");
+  }
+
+  const data = await response.json();
+  
+  // NOTE: Depending on your backend's exact JSON structure, you might need to map it here.
+  // Example: return data.requests[0].donors; 
+  return data.donors || data; 
+};
+
+function ViewRequests() {
+  const [activeTab, setActiveTab] = useState("all");
+  const queryClient = useQueryClient();
+
+  // --- 1. DATA FETCHING WITH REACT QUERY ---
+  const { 
+    data: donors = [], 
+    isLoading, 
+    isError, 
+    error,
+    refetch 
+  } = useQuery({
+    queryKey: ["bloodRequests"],
+    queryFn: fetchDonors,
+    // Optional: Keep data fresh without spamming the server
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // --- 2. OPTIMISTIC UPDATES WITH MUTATION ---
+  const toggleMutation = useMutation({
+    mutationFn: async (donorId) => {
+      // Replace with your actual PATCH/PUT endpoint to update donor status
+      // await fetch(`https://vitalmatch-backend-service.onrender.com/api/auth/hospital/donors/${donorId}/toggle`, { method: "PATCH" });
+      
+      // Simulating a network request for the UI
+      return new Promise(resolve => setTimeout(resolve, 500)); 
+    },
+    // When mutate is called:
+    onMutate: async (donorId) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["bloodRequests"] });
+
+      // Snapshot the previous value
+      const previousDonors = queryClient.getQueryData(["bloodRequests"]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(["bloodRequests"], (old) => 
+        old?.map(donor => 
+          donor.id === donorId ? { ...donor, isActive: !donor.isActive } : donor
+        )
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousDonors };
+    },
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (err, donorId, context) => {
+      queryClient.setQueryData(["bloodRequests"], context.previousDonors);
+      console.error("Failed to toggle donor status", err);
+    },
+    // Always refetch after error or success to ensure backend sync
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["bloodRequests"] });
+    },
+  });
+
+  const toggleActive = (id) => {
+    toggleMutation.mutate(id);
+  };
+
+  // --- 3. FILTERING ---
+  const filteredDonors = donors.filter((donor) => {
+    if (activeTab === "all") return true;
+    return donor.status?.toLowerCase() === activeTab;
+  });
+
+  // --- 4. HELPER UI COMPONENTS ---
+  const getStatusBadge = (status) => {
+    const safeStatus = status?.toLowerCase() || "unknown";
+    const styles = {
+      accepted: "bg-green-100 text-green-700 border-green-200",
+      pending: "bg-amber-100 text-amber-700 border-amber-200",
+      declined: "bg-red-100 text-red-700 border-red-200",
+    };
+    const style = styles[safeStatus] || "bg-gray-100 text-gray-700 border-gray-200";
+    
+    return (
+      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${style} capitalize`}>
+        {status || "N/A"}
+      </span>
+    );
+  };
+
+  return (
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-6 md:p-8 text-gray-800 font-sans">
+      <div className="max-w-6xl mx-auto">
+        
+        {/* HEADER */}
+        <div className="mb-8 flex justify-between items-end">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Blood Request Details</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage and track potential donors for this request.</p>
+          </div>
+        </div>
+
+        {/* DETAILS CARD */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 w-full">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
+            {[
+              { label: "Request ID", value: "BR-2026-101", highlight: true },
+              { label: "Blood Group", value: "O-", alert: true },
+              { label: "Genotype", value: "AA" },
+              { label: "Donors Needed", value: "10" },
+              { label: "Request Time", value: "2 hours ago" },
+              { label: "Status", value: "Ongoing", badge: true },
+              { label: "Patient Note", value: "Post-surgery, critical condition", fullSpan: true },
+            ].map((item, i) => (
+              <div key={i} className={`flex flex-col space-y-1 ${item.fullSpan ? "col-span-2 md:col-span-4" : ""}`}>
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{item.label}</span>
+                {item.badge ? (
+                  <span className="w-max px-2.5 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded-md text-sm">
+                    {item.value}
+                  </span>
+                ) : (
+                  <span className={`text-sm ${item.highlight ? "font-bold text-gray-900" : "text-gray-700"} ${item.alert ? "text-red-600 font-bold" : ""}`}>
+                    {item.value}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CONTENT AREA: STATE MANAGEMENT */}
+        {isLoading ? (
+          <div className="bg-white rounded-2xl p-16 shadow-sm border border-gray-100 flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <p className="text-sm text-gray-500 font-medium">Fetching donor responses...</p>
+          </div>
+        ) : isError ? (
+          <div className="bg-red-50 rounded-2xl p-8 border border-red-100 flex flex-col items-center text-center">
+            <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+            <h3 className="text-lg font-semibold text-red-800 mb-1">Failed to load data</h3>
+            <p className="text-sm text-red-600">{error?.message || "An unknown error occurred."}</p>
+            <button onClick={() => refetch()} className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm font-medium transition-colors">
+              Try Again
+            </button>
+          </div>
+        ) : donors.length > 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            
+            {/* TABS */}
+            <div className="p-4 border-b border-gray-100 bg-white">
+              <div className="inline-flex bg-gray-100/80 p-1 rounded-xl overflow-x-auto w-full md:w-auto">
+                {[
+                  { key: "all", label: "All Responses" },
+                  { key: "accepted", label: "Accepted" },
+                  { key: "pending", label: "Pending" },
+                  { key: "declined", label: "Declined" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+                      activeTab === tab.key
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* TABLE */}
+            <div className="overflow-x-auto">
+              {filteredDonors.length === 0 ? (
+                <div className="p-12 text-center text-gray-500 text-sm">No donors found in this category.</div>
+              ) : (
+                <table className="w-full text-sm text-left whitespace-nowrap">
+                  <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4 font-medium">Donor ID</th>
+                      <th className="px-6 py-4 font-medium">Blood / Genotype</th>
+                      <th className="px-6 py-4 font-medium">Contact</th>
+                      <th className="px-6 py-4 font-medium">Distance</th>
+                      <th className="px-6 py-4 font-medium">Status</th>
+                      <th className="px-6 py-4 font-medium text-center">Active</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredDonors.map((row) => (
+                      <tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
+                        <td className="px-6 py-4 font-medium text-gray-900">{row.id}</td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-red-600 mr-2">{row.group}</span>
+                          <span className="text-gray-500">{row.genotype}</span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{row.contact}</td>
+                        <td className="px-6 py-4 text-gray-600">{row.distance}</td>
+                        <td className="px-6 py-4">{getStatusBadge(row.status)}</td>
+                        
+                        {/* TOGGLE */}
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => toggleActive(row.id)}
+                            disabled={toggleMutation.isPending}
+                            className={`w-11 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              row.isActive ? "bg-blue-600" : "bg-gray-300"
+                            } ${toggleMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            <span
+                              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                                row.isActive ? "translate-x-5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* PAGINATION */}
+            <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-gray-100 gap-4">
+              <span className="text-sm text-gray-500 font-medium">
+                Showing {filteredDonors.length} of {donors.length} results
+              </span>
+              <div className="flex items-center gap-1">
+                <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                  <ChevronLeft size={16} />
+                </button>
+                <button className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-700 font-semibold rounded-lg text-sm border border-blue-100">
+                  1
+                </button>
+                <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* EMPTY STATE */
+          <div className="flex flex-col items-center justify-center text-center mt-12 mb-12 max-w-md mx-auto bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
+            <div className="bg-red-50 p-5 rounded-full mb-6 ring-8 ring-red-50/50">
+              <X className="text-red-500 w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">No Donors Found Yet</h2>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+              We are still searching our database. You'll be notified immediately once a matching donor is located in your radius.
+            </p>
+            <button className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 transition-all">
+              Expand Search Radius
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default ViewRequests;

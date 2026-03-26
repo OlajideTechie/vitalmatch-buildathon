@@ -4,9 +4,11 @@ import VitalMatchLogo from "../../assets/vitalmatch-logo.png";
 import { getUserCoordinates, getAddressFromCoords } from '../../utils/locationUtils';
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 function DonorRegister() {
+  const navigate = useNavigate();
   const [isBloodGroupOpen, setIsBloodGroupOpen] = useState(false);
   const [isGenotypeOpen, setIsGenotypeOpen] = useState(false);
   const [selectedBloodGroup, setSelectedBloodGroup] = useState('');
@@ -15,6 +17,7 @@ function DonorRegister() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -150,8 +153,11 @@ function DonorRegister() {
     const mutation = useMutation({
     mutationFn: registerDonor,
 
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Registration successful 🎉");
+      login(data.user, data.access_token);
+
+      navigate("/donor-dashboard");
     },
 
     onError: async (error) => {

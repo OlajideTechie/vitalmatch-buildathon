@@ -1,34 +1,57 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token"));
+export const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(localStorage.getItem('vitalmatch_token') || null);
+  
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('vitalmatch_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      localStorage.setItem("token", token);
-    } else {
-      localStorage.removeItem("token");
-    }
-  }, [token]);
+    setIsLoading(false);
+  }, []);
 
-  const login = (data) => {
-    setUser(data.user);
-    setToken(data.token);
+  // Update the login function to accept the role
+  const login = (userData, authToken) => {
+    setUser(userData);
+    setToken(authToken);
+    
+    localStorage.setItem('vitalmatch_token', authToken);
+    localStorage.setItem('vitalmatch_user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
+    localStorage.removeItem('vitalmatch_token');
+    localStorage.removeItem('vitalmatch_user');
+  };
+
+  const value = {
+    user,
+    token,
+    isAuthenticated: !!token,
+    isLoading,
+    login,
+    logout,
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!isLoading && children}
     </AuthContext.Provider>
   );
-}
+};
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};

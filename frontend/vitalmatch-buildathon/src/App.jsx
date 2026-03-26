@@ -7,9 +7,12 @@ import Login from "./pages/auth/LogIn";
 import VitalMatchOnboarding from "./VitalMatchOnboarding";
 import HospitalRegister from "./pages/auth/HospitalRegister";
 import DonorRegister from "./pages/auth/DonorRegister";
-
-// import DonorDashboard from "./pages/dashboard/DonorDashboard";
-// import HospitalDashboard from "./pages/dashboard/HospitalDashboard";
+// import DonorLayout from "./components/DonorLayout";
+import HospitalLayout from "./components/HospitalLayout";
+import DonorDashboard from "./pages/donor/DonorDashboard";
+import HospitalDashboard from "./pages/hospital/HospitalDashboard";
+import CreateRequests from "./pages/hospital/CreateRequests";
+import ViewRequests from "./pages/hospital/ViewRequests";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
@@ -53,23 +56,31 @@ function App() {
             <Route path="/donor-register" element={<DonorRegister />} />
 
             {/* Protected Routes */}
-            {/* <Route
+            <Route
               path="/donor-dashboard"
               element={
                 <ProtectedRoute>
                   <DonorDashboard />
                 </ProtectedRoute>
               }
-            />
+            >
+              {/* <Route index element={<DonorDashboard />} />
+              <Route path="requests" element={<DonorRequests />} />
+              <Route path="profile" element={<DonorProfile />} /> */}
+            </Route>
 
             <Route
               path="/hospital-dashboard"
               element={
-                <ProtectedRoute>
-                  <HospitalDashboard />
-                </ProtectedRoute>
+                
+                  <HospitalLayout />
+                
               }
-            /> */}
+            >
+              <Route index element={<HospitalDashboard />} />
+              <Route path="create-request" element={<CreateRequests />} />
+              <Route path="view-all-requests" element={<ViewRequests />} />
+            </Route>
 
             {/* Optional: Catch-all route */}
             <Route path="*" element={<h1 className="p-10">404 - Page Not Found</h1>} />

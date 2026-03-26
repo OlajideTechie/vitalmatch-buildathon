@@ -3,15 +3,16 @@ import { ChevronDown, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import VitalMatchLogo from "../../assets/vitalmatch-logo.png";
 import { getUserCoordinates, getAddressFromCoords } from '../../utils/locationUtils';
 import { useMutation } from "@tanstack/react-query";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 function HospitalRegister() {
+  const navigate = useNavigate();
   const [globalError, setGlobalError] = useState('');
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -135,8 +136,11 @@ function HospitalRegister() {
     
       const mutation = useMutation({
         mutationFn: registerHospital,
-        onSuccess: () => {
+        onSuccess: (data) => {
           toast.success("Registration successful 🎉");
+          login(data.user, data.access_token);
+
+          navigate("/hospital-dashboard");
         },
 
       onError: async (error) => {
