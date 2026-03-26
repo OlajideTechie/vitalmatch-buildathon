@@ -244,8 +244,8 @@ class ConfirmDonationView(APIView):
         if blood_request.fulfilled_units >= blood_request.required_units:
             return Response({"error": "Request already completed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Update acceptance status
-        acceptance.status = "accepted"
+        # Update acceptance status to confirmed
+        acceptance.status = "confirmed"
         acceptance.save()
 
         # Update blood request fulfillment
@@ -257,18 +257,19 @@ class ConfirmDonationView(APIView):
         donor = acceptance.donor
         donor.reward_points += 1
         donor.successful_donation += 1
-        donor.is_available = True  # back online
+        donor.is_available = True  # Donor is returned back online
         donor.save()
 
         # Notify the donor
         Notification.objects.create(
             user=donor.user,
             title="Donation Confirmed",
-            message="Your blood donation has been confirmed. Thank you!"
+            message=f"Your donation for request {blood_request.id} has been confirmed. Thank you!"
         )
 
         return Response({
             "message": "Donation confirmed",
             "status": blood_request.status,
-            "fulfilled_units": blood_request.fulfilled_units
+            "fulfilled_units": blood_request.fulfilled_units,
+            "donor_status": acceptance.status
         }, status=status.HTTP_200_OK)

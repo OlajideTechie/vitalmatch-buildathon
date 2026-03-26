@@ -1,5 +1,7 @@
 from donors.models import DonorProfile
 from math import radians, sin, cos, sqrt, atan2
+from donors.models import DonorProfile
+from bloodrequest.models import DonorAcceptance
 
 
  # Distance calculation
@@ -47,12 +49,23 @@ def generate_reason(distance, donor):
 
 
  # Main matching function
-def match_donors(blood_request):
+def match_donors(blood_request, search_radius_km=radians):
+
+    # Stop if request already completed
+    if blood_request.status == "completed":
+        return []
+
+    # Exclude already matched donors for this request
+    matched_donor_ids = DonorAcceptance.objects.filter(
+        request=blood_request
+    ).values_list("donor_id", flat=True)
+
+    # Filter eligible donors
     donors = DonorProfile.objects.filter(
         blood_group=blood_request.blood_group,
         genotype=blood_request.genotype,
         is_available=True
-    )
+    ).exclude(id__in=matched_donor_ids)
 
     results = []
 
@@ -64,6 +77,10 @@ def match_donors(blood_request):
             donor.longitude
         )
 
+        # Apply radius filter
+        if distance > search_radius_km:
+            continue
+
         score = calculate_score(distance, donor)
 
         results.append({
@@ -73,9 +90,19 @@ def match_donors(blood_request):
             "reason": generate_reason(distance, donor)
         })
 
-    # sort by best score
+    # Sort by best score
     results.sort(key=lambda x: x["score"])
 
-    limit = blood_request.required_units + 2  # buffer
+    # Limit results (with buffer)
+    limit = blood_request.required_units + 2
+    results = results[:limit]
 
-    return results[:limit]
+    # Create pending records
+    for item in results:
+        DonorAcceptance.objects.get_or_create(
+            donor=item["donor"],
+            request=blood_request,
+            defaults={"status": "pending"}
+        )
+
+    return results
