@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
 function CreateRequests() {
     const [globalError, setGlobalError] = useState('');
@@ -40,6 +41,7 @@ function CreateRequests() {
   const handleSubmit = (e) => {
   e.preventDefault();
   setGlobalError('');
+  console.log(token);
 
   if (validateForm()) {
     const payload = {
