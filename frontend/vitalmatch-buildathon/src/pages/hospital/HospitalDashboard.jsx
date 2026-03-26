@@ -74,7 +74,7 @@ function HospitalDashboard() {
     })) || [];
 
     return (
-        <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <div className="p-6 md:p-8 w-full mx-auto">
             {/* --- 2. FIXED GRID: Changed lg:grid-cols-3 to lg:grid-cols-4 --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 {summaryCards.map((card, idx) => (

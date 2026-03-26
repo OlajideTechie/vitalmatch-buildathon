@@ -7,13 +7,13 @@ import Login from "./pages/auth/LogIn";
 import VitalMatchOnboarding from "./VitalMatchOnboarding";
 import HospitalRegister from "./pages/auth/HospitalRegister";
 import DonorRegister from "./pages/auth/DonorRegister";
-// import DonorLayout from "./components/DonorLayout";
+import DonorLayout from "./components/DonorLayout";
 import HospitalLayout from "./components/HospitalLayout";
 import DonorDashboard from "./pages/donor/DonorDashboard";
 import HospitalDashboard from "./pages/hospital/HospitalDashboard";
 import CreateRequests from "./pages/hospital/CreateRequests";
 import ViewRequest from "./pages/hospital/ViewRequest";
-
+import RewardPage from "./pages/donor/RewardPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -61,21 +61,20 @@ function App() {
               path="/donor-dashboard"
               element={
                 <ProtectedRoute>
-                  <DonorDashboard />
+                  <DonorLayout />
                 </ProtectedRoute>
               }
             >
-              {/* <Route index element={<DonorDashboard />} />
-              <Route path="requests" element={<DonorRequests />} />
-              <Route path="profile" element={<DonorProfile />} /> */}
+              <Route index element={<DonorDashboard />} />
+              <Route path="rewards" element={<RewardPage />} />
             </Route>
 
             <Route
               path="/hospital-dashboard"
               element={
-                
+                <ProtectedRoute>
                   <HospitalLayout />
-                
+                </ProtectedRoute>
               }
             >
               <Route index element={<HospitalDashboard />} />

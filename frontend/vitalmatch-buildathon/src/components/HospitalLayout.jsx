@@ -7,7 +7,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { fetchProfile, fetchNotifications } from "../services/auth";
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { getUserCoordinates, getAddressFromCoords } from '../utils/locationUtils';
 import { formatTime } from "../utils/formatTime";
 
@@ -24,6 +24,12 @@ function HospitalLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [location, setLocation] = useState('Loading...');
+
+    const locationHandler = useLocation();
+
+    useEffect(() => {
+        setSidebarOpen(false);
+    }, [locationHandler.pathname]);
 
     useEffect(() => {
         const fetchLocation = async () => {
@@ -88,7 +94,6 @@ function HospitalLayout() {
 
     return (
         <div className="flex h-screen bg-[#F8F9FC] font-sans overflow-hidden">
-            
             {/* Sidebar */}
             <div className={`fixed top-0 left-0 z-50 bg-[#0B0E27] w-64 h-screen shadow transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 flex flex-col`}>
                 <div className="p-6 flex items-center justify-between border-b border-gray-800 shrink-0">
