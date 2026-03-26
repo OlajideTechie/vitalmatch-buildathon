@@ -17,6 +17,10 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from notifications.models import Notification
 
+from django.utils import timezone
+from datetime import timedelta
+
+
 @extend_schema(
     tags=["Hospitals"]
 )
@@ -75,28 +79,52 @@ class RetryMatchView(APIView):
     serializer_class = RetryMatchSerializer
     permission_classes = [IsAuthenticated, IsHospital]
 
+    MAX_RADIUS_KM = 20
+    INITIAL_RADIUS_KM = 5
+    RADIUS_INCREMENT_KM = 5
+    COOLDOWN_SECONDS = 60 
+
     def post(self, request, request_id):
         try:
             hospital = HospitalProfile.objects.get(user=request.user)
+            blood_request = BloodRequest.objects.get(id=request_id, hospital=hospital)
         except HospitalProfile.DoesNotExist:
             return Response(
                 {"error": "Hospital profile not found for this user."},
                 status=status.HTTP_404_NOT_FOUND
             )
-
-        try:
-            blood_request = BloodRequest.objects.get(id=request_id, hospital=hospital)
         except BloodRequest.DoesNotExist:
             return Response(
                 {"error": "Blood request not found or you do not have permission."},
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+        if blood_request.status == "completed":
+            return Response({"message": "Blood request already fulfilled."}, status=400)
+        
 
-        matches = match_donors(blood_request)
+         # Cooldown check for hospital retry again
+        if blood_request.last_retry_at:
+            time_diff = timezone.now() - blood_request.last_retry_at
+            if time_diff < timedelta(seconds=self.COOLDOWN_SECONDS):
+                remaining = self.COOLDOWN_SECONDS - time_diff.seconds
+                return Response({
+                    "message": "Please wait before retrying.",
+                    "retry_after_seconds": remaining
+                }, status=429)
+
+        radius = self.INITIAL_RADIUS_KM
+        matches = []
+
+        while radius <= self.MAX_RADIUS_KM:
+            matches = match_donors(blood_request, search_radius_km=radius)
+            if matches:
+                break
+            radius += self.RADIUS_INCREMENT_KM
 
         if not matches:
             return Response(
-                {"message": "No donors found. Try again later."},
+                {"message": "Still no donors available. Please try again later."},
                 status=status.HTTP_200_OK
             )
 
