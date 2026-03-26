@@ -127,4 +127,6 @@ class HospitalProfileLoginSerializer(serializers.ModelSerializer):
 
 
 class ConfirmDonationSerializer(serializers.Serializer):
-    acceptance_id = serializers.UUIDField()
+    acceptance_id = serializers.UUIDField(
+        required=True, help_text="ID of the donor acceptance to confirm"
+    )

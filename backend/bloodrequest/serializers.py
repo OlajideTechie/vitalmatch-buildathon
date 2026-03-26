@@ -33,9 +33,16 @@ class BloodRequestProgressSerializer(serializers.ModelSerializer):
 
 
 class DonorAcceptanceSerializer(serializers.ModelSerializer):
-    class Meta:
+     ACTION_CHOICES = [
+        ('accept', 'Accept the blood request'),
+        ('ignore', 'Ignore the blood request'),
+    ]
+     action = serializers.ChoiceField(choices=ACTION_CHOICES, required=True)
+
+     class Meta:
         model = DonorAcceptance
-        fields = '__all__'
+        fields = ['id', 'donor', 'request', 'status', 'action']
+        read_only_fields = ['id', 'donor', 'request', 'status']
 
 
 class DonorInfoSerializer(serializers.Serializer):

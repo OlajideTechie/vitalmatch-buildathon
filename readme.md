@@ -9,7 +9,9 @@
 
 # Overview
 
-VitalMatch prioritizes speed, reliability, and simplicity by intelligently matching donors and ensuring requests are fulfilled efficiently.
+VitalMatch is a real-time blood donor matching platform designed to connect hospitals with nearby, compatible donors quickly and efficiently.
+
+The system prioritizes proximity, donor reliability, and availability to ensure faster response times and increased chances of successful blood donations.
 
 ---
 
@@ -19,70 +21,99 @@ VitalMatch prioritizes speed, reliability, and simplicity by intelligently match
 
 ## Project Url(s)
 - Figma Url:
-- Frontend URL: 
-- Backend Service: [URL](https://vitalmatch-backend-service.onrender.com)
+- Frontend URL: [Frontend-Service URL](https://vitalmatch-buildathon.vercel.app)
+- Backend Service: [Backend-Service URL](https://vitalmatch-backend-service.onrender.com)
 
 ---
 
-## Test Data
-You can use the following seeded users:
+## Test Credentials
+Hospital:
+username: hospital1
+password: test1234
 
-For Hospital
-
-Username: hospital1
-Password: password123
-
-For Donors
-Username: donor0 → donor29
-Password: password123
+Donor:
+username: donor1
+password: test1234
 
 ---
 
 ## Problem
-Hospitals face delays in sourcing compatible blood donors during emergencies due to:
+Hospitals often struggle to find compatible blood donors quickly during emergencies. Traditional methods are:
 
-- Manual processes
-- Limited visibility
-- Lack of real-time matching
+- Slow
+- Inefficient
+- Manual
+- Unreliable
+
+VitalMatch solves this by providing intelligent, real-time donor matching.
 
 ---
 
 ## Solution
-VitalMatch connects hospitals with nearby, verified donors using intelligent matching and ensures requests are fulfilled, not just initiated.
+VitalMatch enables hospitals to:
 
----
-
-## How it works
-Create Request → Match Donors → Accept → Confirm → Complete or Retry
+- Create blood requests instantly
+- Automatically find nearby donors
+- Notify and receive responses from donors
+- Track fulfillment progress in real time
+- Confirm donations and reward donors
 
 ---
 
 ## Core Features
-- Intelligent matching (distance + genotype + activity)
-- Multi-donor acceptance
-- Fulfillment tracking
-- Retry mechanism
-- Reward system (simulated)
+**Hospital Features**
+- Create blood requests
+- View all requests (dashboard)
+- Track fulfillment progress (open → partial → completed)
+- View matched donors with contact details
+- Retry matching when no donors are available
+- Confirm donations
+
+**Donor Features**
+- Register and login
+- Set availability
+- Receive blood donation requests
+- Accept requests
+- View donation history
+- Earn reward points
+
+**Intelligent Matching Engine**
+- Distance-based matching (Haversine formula)
+- Reliability scoring (successful donations)
+- Activity scoring (reward points)
+- Explainable matching (“why this donor”)
+
+**Notifications**
+- Donor receives confirmation notifications
+- Hospital sees donor responses
+- Keeps both parties informed in real-time
 
 ---
 
-## Matching Logic
-Score = Haversine Distance - (0.1 × Reward Points)
-
-- Lower score = better match
-- Filters: blood group + genotype
+## How it works
+1. Hospital creates a blood request
+2. System finds and ranks nearby donors
+3. Donors receive and accept requests
+4. Hospital views accepted donors
+5. Hospital confirms donation
+6. System:
+     - Updates fulfillment progress
+     - Rewards donor
+     - Updates donor reliability
 
 ---
 
 ## Verification (Interswitch)
-- Donors → NIN
-- Hospitals → CAC
+- Interswitch (CAC verification)
 
 ---
 
-## Business Model
-- Hospitals pay per successful request
-- Subscription model (future)
+## System Design
+- Secure authentication (JWT)
+- Role-based access (Hospital vs Donor)
+- Service-based architecture (matching logic separated)
+- Real-time fulfillment tracking
+- Scalable matching algorithm
 
 ---
 
@@ -90,17 +121,44 @@ Score = Haversine Distance - (0.1 × Reward Points)
 - **Backend**: Django + Django REST Framework
 - **Database**: PostgreSQL (SQLite for local dev)
 - **Frontend**: React
-- **Notifications**: SMS (mocked in MVP)
+- **Notifications**: (notifications are mocked in MVP)
 - **Deployment**: Render, Vercel
-- **ThirdPrty-Intehration**: Interswitch APIs
+- **ThirdPrty-Intehration**: Interswitch API
 
 ---
 
+## Team Contributions
 
-## Folder Structure
+- Olajide Ojo (Backend Engineer)
+  - Designed system architecture
+  - Built authentication (JWT)
+  - Implemented matching engine (Haversine + scoring)
+  - Developed APIs (requests, retry, confirmation, notifications)
+  - Integrated CAC verification API
+
+- [Teammate Name] (Frontend Developer)
+  - Built user interface
+  - Integrated backend APIs
+  - Designed dashboards
+
+- [Teammate Name] (UI/UX Designer)
+  - Designed Figma prototypes
+  - Created user flows and experience
+
+- [Teammate Name] (Product/Research)
+  - Defined problem scope
+  - Conducted user research
+  - Shaped product direction
 
 ---
 
+## Future Improvements
+- Real-time notifications (WebSockets)
+- Payment/reward withdrawal system
+- AI-based demand prediction
+- Integration with national blood banks
+
+---
 
 ## Local Setup for backend service
 
@@ -140,4 +198,8 @@ python manage.py runserver
 ---
 
 ## What Makes Us Different
-We don’t just match donors, we ensure fulfillment.
+
+- Intelligent donor ranking (not random matching)
+- Retry system for failed matches
+- Real-time fulfillment tracking
+- Explainable matching decisions

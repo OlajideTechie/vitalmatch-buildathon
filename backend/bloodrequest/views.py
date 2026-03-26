@@ -9,10 +9,11 @@ from common.donor_permissions import IsDonor
 from .models import HospitalProfile, BloodRequest, DonorAcceptance, DonorProfile
 from .serializers import ( 
     BloodRequestSerializer,
-    BloodRequestProgressSerializer,
+    DonorAcceptanceSerializer,
     RetryMatchSerializer
 )
 from services.matching import match_donors
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from notifications.models import Notification
@@ -151,18 +152,28 @@ class RetryMatchView(APIView):
 
 
 @extend_schema(
-    request=None,
+    request=DonorAcceptanceSerializer,
+    responses={201: OpenApiTypes.OBJECT},
     tags=["Donors"]
 )
 class DonorAcceptRequestView(APIView):
+
     """
-    Allows a donor to accept a blood request.
-    Notifies the hospital when a donor accepts.
-    Temporarily marks donor as unavailable.
+        Accept or ignore a blood request.
+        Request body can contain:
+        {
+            "action": "accept"  or "ignore"
+        }
     """
     permission_classes = [IsAuthenticated, IsDonor]
 
     def post(self, request, request_id):
+
+        # Validate action
+        serializer = DonorAcceptanceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        action = serializer.validated_data["action"]
+
         # Get donor profile
         try:
             donor = DonorProfile.objects.get(user=request.user)
@@ -175,30 +186,52 @@ class DonorAcceptRequestView(APIView):
         except BloodRequest.DoesNotExist:
             return Response({"error": "Blood request not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if donor already accepted
+        # Check if donor already accepted/ignored
         if DonorAcceptance.objects.filter(donor=donor, request=blood_request).exists():
-            return Response({"error": "You have already accepted this request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "You have already accepted this reques"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Mark donor as unavailable once request has been accepted
-        donor.is_available = False
-        donor.save()
+        if action == "accept":
+            # Mark donor as unavailable once request has been accepted
+            donor.is_available = False
+            donor.save()
 
-        # Create acceptance record
-        acceptance = DonorAcceptance.objects.create(
-            donor=donor,
-            request=blood_request,
-            status="accepted"  # to be confirmed by hospital
-        )
+            # Create acceptance record
+            acceptance = DonorAcceptance.objects.create(
+                donor=donor,
+                request=blood_request,
+                status="accepted"  # to be confirmed by hospital
+            )
 
-        # Notify hospital
-        Notification.objects.create(
-            user=blood_request.hospital.user,
-            title="Blood Request Accepted",
-            message=f"Donor {donor.full_name} has accepted your blood request for {blood_request.blood_group} ({blood_request.genotype})."
-        )
+            # Notify hospital
+            Notification.objects.create(
+                user=blood_request.hospital.user,
+                title="Blood Request Accepted",
+                message=f"Donor {donor.full_name} has accepted your blood request"
+                        f"for {blood_request.blood_group} ({blood_request.genotype})."
+            )
 
-        return Response({
-            "message": "You have successfully accepted the blood request",
-            "acceptance_id": acceptance.id,
-            "status": acceptance.status
-        }, status=status.HTTP_201_CREATED)
+            return Response({
+                "message": "Blood request accepted successfully",
+                "acceptance_id": acceptance.id,
+                "status": acceptance.status
+            }, status=status.HTTP_201_CREATED)
+
+        elif action == "ignore":
+            # Mark as ignored
+            DonorAcceptance.objects.create(
+                donor=donor,
+                request=blood_request,
+                status="ignored"
+            )
+
+            # Donor remains available
+            donor.is_available = True
+            donor.save()
+
+            return Response({
+                "message": "You have ignored this blood request and it will no longer appear in your list",
+                "status": "ignored"
+            }, status=status.HTTP_200_OK)
+
+        else:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)

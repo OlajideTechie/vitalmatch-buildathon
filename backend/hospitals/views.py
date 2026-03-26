@@ -217,6 +217,7 @@ class ConfirmDonationView(APIView):
     Hospital confirms that a donor's blood donation has been completed.
     Donor is set back to available, rewarded, and a notification is sent.
     """
+    serializer_class = ConfirmDonationSerializer
     permission_classes = [IsAuthenticated, IsHospital]
 
     def post(self, request):
