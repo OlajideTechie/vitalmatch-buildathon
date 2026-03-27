@@ -54,6 +54,6 @@ class DonorInfoSerializer(serializers.Serializer):
 
 
 class RetryMatchSerializer(serializers.Serializer):
-    donor_id = serializers.IntegerField()
+    donor_id = serializers.UUIDField()
     distance_km = serializers.FloatField()
     reason = serializers.CharField()

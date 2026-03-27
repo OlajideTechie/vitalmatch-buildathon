@@ -1,8 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from donors.models import DonorProfile
+from bloodrequest.models import DonorAcceptance
 from services.verification import verify_nin
+from django.utils.timesince import timesince
+
 import re
+
+
 
 User = get_user_model()
 
@@ -131,3 +136,27 @@ class DonorProfileLoginSerializer(serializers.ModelSerializer):
             'is_verified',
             'is_available'
         ]
+    
+
+class DonorDashboardSerializer(serializers.ModelSerializer):
+    hospital_name = serializers.CharField(source="request.hospital.full_name")
+    blood_group = serializers.CharField(source="request.blood_group")
+    genotype = serializers.CharField(source="request.genotype")
+    created_at = serializers.DateTimeField(source="request.created_at")
+    time_ago = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DonorAcceptance
+        fields = [
+            "id",
+            "hospital_name",
+            "blood_group",
+            "genotype",
+            "status",
+            "created_at",
+            "time_ago"
+        ]    
+
+    def get_time_ago(self, obj):
+        created_at = obj.request.created_at
+        return timesince(created_at).split(",")[0] + " ago"

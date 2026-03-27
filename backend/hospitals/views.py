@@ -228,7 +228,7 @@ class ConfirmDonationView(APIView):
         try:
             acceptance = DonorAcceptance.objects.select_related(
                 "donor", "request"
-            ).get(id=acceptance_id)
+            ).get(request_id=acceptance_id)
         except DonorAcceptance.DoesNotExist:
             return Response(
                 {"error": "Donor acceptance record not found."},
