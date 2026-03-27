@@ -124,3 +124,40 @@ export const fetchNotifications = async (token) => {
 
   return res.json();
 };
+
+export const fetchDonorRequests = async (token) => {
+  const res = await fetch(
+    "https://vitalmatch-backend-service.onrender.com/api/auth/donor/requests/dashboard",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch donor requests");
+  }
+
+  return res.json();
+};
+
+export const respondToRequest = async ({ requestId, status, token }) => {
+  const res = await fetch(
+    `https://vitalmatch-backend-service.onrender.com/api/donor/requests/${requestId}/respond`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }), // "accepted" or "declined"
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to respond to request");
+  }
+
+  return res.json();
+};

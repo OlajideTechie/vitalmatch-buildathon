@@ -41,7 +41,6 @@ function CreateRequests() {
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		setGlobalError('');
-		console.log(token);
 
 		if (validateForm()) {
 			const payload = {

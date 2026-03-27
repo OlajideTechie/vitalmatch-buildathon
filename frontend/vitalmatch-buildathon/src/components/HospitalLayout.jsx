@@ -68,9 +68,7 @@ function HospitalLayout() {
         enabled: !!token,
     });
 
-    const notificationsArray = Array.isArray(notificationsData) ? notificationsData : notificationsData?.data || [];
-
-    const notifications = (notificationsArray).map((notif) => ({
+    const notifications = (notificationsData?.results || []).map((notif) => ({
         id: notif.id,
         title: notif.title,
         message: notif.message,

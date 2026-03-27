@@ -11,6 +11,7 @@ function ViewRequest() {
   	const [matchInsight, setMatchInsight] = useState(null);
   	const { id } = useParams();
 	const { token } = useAuth();
+
 	const {
 		data: requestData,
 		isLoading: requestLoading,
@@ -33,18 +34,15 @@ function ViewRequest() {
 			queryFn: () => fetchDonorsByRequest(id, token),
 			enabled: !!id && !!token,
 	});
-	const donorsArray = Array.isArray(donorsData) ? donorsData : donorsData?.data || [];
 
-	const donors = (donorsArray || []).map((donor) => ({
+	const donors = (donorsData?.results || []).map((donor) => ({
 		id: donor.id,
 		name: donor.full_name,
 		group: donor.blood_group,
 		genotype: donor.genotype,
 		contact: donor.phone_number,
 		email: donor.email,
-		distance: "—",
 		status: "pending",
-		isActive: false,
 	}));
 
 	const filteredDonors = donors.filter((donor) => {
@@ -69,7 +67,7 @@ function ViewRequest() {
 		onError: (err) => {
 			console.error(err.message);
 		},
-	});
+k2	});
 
 	const retryMutation = useMutation({
 		mutationFn: () => retryMatching({ requestId: id, token }),
@@ -208,26 +206,23 @@ function ViewRequest() {
                 <table className="w-full text-sm text-left whitespace-nowrap">
                   <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
                     <tr>
-                      <th className="px-6 py-4 font-medium">Donor ID</th>
+                      <th className="px-6 py-4 font-medium">Donor's name</th>
                       <th className="px-6 py-4 font-medium">Blood / Genotype</th>
                       <th className="px-6 py-4 font-medium">Contact</th>
-                      <th className="px-6 py-4 font-medium">Distance</th>
-                      <th className="px-6 py-4 font-medium">Status</th>
-                      <th className="px-6 py-4 font-medium text-center">Active</th>
+                      <th className="px-6 py-4 font-medium">Email</th>
+                      <th className="px-6 py-4 font-medium">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {filteredDonors.map((row) => (
                       <tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
-                        <td className="px-6 py-4 font-medium text-gray-900">{row.id}</td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
                         <td className="px-6 py-4">
-                          <span className="font-semibold text-red-600 mr-2">{row.group}</span>
+                          <span className="font-semibold text-red-600 mr-2">{row.blood_group}</span> / 
                           <span className="text-gray-500">{row.genotype}</span>
                         </td>
                         <td className="px-6 py-4 text-gray-600">{row.contact}</td>
-                        <td className="px-6 py-4 text-gray-600">{row.distance}</td>
-                        <td className="px-6 py-4">{getStatusBadge(row.status)}</td>
-                        
+                        <td className="px-6 py-4 text-gray-600">{row.email}</td>
                         {/* TOGGLE */}
                         <td className="px-6 py-4 text-center">
                           <button
