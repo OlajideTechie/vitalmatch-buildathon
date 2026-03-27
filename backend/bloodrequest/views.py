@@ -29,45 +29,68 @@ class CreateRequestView(APIView):
     serializer_class = BloodRequestSerializer
     permission_classes = [IsAuthenticated, IsHospital]
 
+    INITIAL_RADIUS_KM = 5
+    MAX_RADIUS_KM = 500
+    RADIUS_INCREMENT_KM = 50
+
     def post(self, request):
-        hospital = HospitalProfile.objects.get(user=request.user)
+        try:
+            hospital = HospitalProfile.objects.get(user=request.user)
+        except HospitalProfile.DoesNotExist:
+            return Response({"error": "Hospital profile not found"}, status=404)
 
         serializer = BloodRequestSerializer(data=request.data)
         if serializer.is_valid():
             blood_request = serializer.save(hospital=hospital)
 
-            # Find matching donors
-            matched = match_donors(blood_request)
+            # Dynamic radius expansion
+            radius = self.INITIAL_RADIUS_KM
+            matches = []
+            message = None
 
-            # Notify matched donors
-            for match in matched:
+            while radius <= self.MAX_RADIUS_KM:
+                matches, message = match_donors(blood_request, search_radius_km=radius)
+                if matches:
+                    break
+                radius += self.RADIUS_INCREMENT_KM
+
+            if not matches:
+                return Response({
+                    "request_id": blood_request.id,
+                    "message": message
+                }, status=200)
+
+            # Notify donors
+            for match in matches:
                 donor = match["donor"]
-                if donor.is_available:  # only notify available donors
+                if donor.is_available:
                     Notification.objects.create(
                         user=donor.user,
                         title="New Blood Request",
-                        message=(
-                            f"A hospital has requested {blood_request.blood_group} blood "
-                            f"with genotype {blood_request.genotype} near your location."
-                        )
+                        message=f"A hospital has requested {blood_request.blood_group} blood "
+                                f"with genotype {blood_request.genotype} near your location."
                     )
+
+            # Serialize matches
+            match_serializer = RetryMatchSerializer(
+                [
+                    {
+                        "donor_id": m["donor"].id,
+                        "distance_km": round(m["distance"], 2),
+                        "reason": m["reason"]
+                    } for m in matches
+                ],
+                many=True
+            )
 
             return Response({
                 "request_id": blood_request.id,
                 "status": blood_request.status,
-                "matches": [
-                    {
-                        "donor_id": item["donor"].id,
-                        "distance_km": round(item["distance"], 2),
-                        "reason": item["reason"]
-                    }
-                    for item in matched
-                ]
-            }, status=status.HTTP_201_CREATED)
+                "matches": match_serializer.data
+            }, status=201)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+        return Response(serializer.errors, status=400)
+    
 @extend_schema(
     request=None,
     tags=["Hospitals"]
@@ -80,31 +103,28 @@ class RetryMatchView(APIView):
     serializer_class = RetryMatchSerializer
     permission_classes = [IsAuthenticated, IsHospital]
 
-    MAX_RADIUS_KM = 20
-    INITIAL_RADIUS_KM = 5
-    RADIUS_INCREMENT_KM = 5
-    COOLDOWN_SECONDS = 60 
+    MAX_RADIUS_KM = 5
+    INITIAL_RADIUS_KM = 500
+    RADIUS_INCREMENT_KM = 50
+    COOLDOWN_SECONDS = 60
 
     def post(self, request, request_id):
         try:
             hospital = HospitalProfile.objects.get(user=request.user)
             blood_request = BloodRequest.objects.get(id=request_id, hospital=hospital)
         except HospitalProfile.DoesNotExist:
-            return Response(
-                {"error": "Hospital profile not found for this user."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "Hospital profile not found."}, status=404)
         except BloodRequest.DoesNotExist:
-            return Response(
-                {"error": "Blood request not found or you do not have permission."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        if blood_request.status == "completed":
-            return Response({"message": "Blood request already fulfilled."}, status=400)
-        
+            return Response({"error": "Blood request not found."}, status=404)
 
-         # Cooldown check for hospital retry again
+        # Prevent retry if already completed
+        if blood_request.status == "completed":
+            return Response(
+                {"message": "Blood request already fulfilled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Cooldown check
         if blood_request.last_retry_at:
             time_diff = timezone.now() - blood_request.last_retry_at
             if time_diff < timedelta(seconds=self.COOLDOWN_SECONDS):
@@ -114,22 +134,47 @@ class RetryMatchView(APIView):
                     "retry_after_seconds": remaining
                 }, status=429)
 
+        # Update retry timestamp
+        blood_request.last_retry_at = timezone.now()
+        blood_request.save(update_fields=["last_retry_at"])
+
+        # Dynamic radius expansion
         radius = self.INITIAL_RADIUS_KM
         matches = []
+        message = None
 
         while radius <= self.MAX_RADIUS_KM:
-            matches = match_donors(blood_request, search_radius_km=radius)
-            if matches:
-                break
-            radius += self.RADIUS_INCREMENT_KM
-
-        if not matches:
-            return Response(
-                {"message": "Still no donors available. Please try again later."},
-                status=status.HTTP_200_OK
+            matches, message = match_donors(
+                blood_request,
+                search_radius_km=radius
             )
 
-        # Serialize matches using RetryMatchSerializer
+            if matches:
+                break
+
+            radius += self.RADIUS_INCREMENT_KM
+
+        # No matches found
+        if not matches:
+            return Response({
+                "request_id": blood_request.id,
+                "message": message or "No donors available. Try again later."
+            }, status=status.HTTP_200_OK)
+
+        # Notify matched donors
+        for match in matches:
+            donor = match["donor"]
+            if donor.is_available:
+                Notification.objects.create(
+                    user=donor.user,
+                    title="New Blood Request",
+                    message=(
+                        f"A hospital has requested {blood_request.blood_group} blood "
+                        f"with genotype {blood_request.genotype} near your location."
+                    )
+                )
+
+        # Serialize matches (including last_donation if needed)
         serializer = self.serializer_class(
             [
                 {
@@ -142,14 +187,11 @@ class RetryMatchView(APIView):
             many=True
         )
 
-        return Response(
-            {
-                "request_id": blood_request.id,
-                "matches": serializer.data
-            },
-            status=status.HTTP_200_OK
-        )
-
+        return Response({
+            "request_id": blood_request.id,
+            "matches": serializer.data
+        }, status=status.HTTP_200_OK)
+    
 
 @extend_schema(
     request=DonorAcceptanceSerializer,
@@ -168,7 +210,6 @@ class DonorAcceptRequestView(APIView):
     permission_classes = [IsAuthenticated, IsDonor]
 
     def post(self, request, request_id):
-
         # Validate action
         serializer = DonorAcceptanceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -186,27 +227,39 @@ class DonorAcceptRequestView(APIView):
         except BloodRequest.DoesNotExist:
             return Response({"error": "Blood request not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if donor already accepted/ignored
-        if DonorAcceptance.objects.filter(donor=donor, request=blood_request).exists():
-            return Response({"error": "You have already accepted this reques"}, status=status.HTTP_400_BAD_REQUEST)
+        # Check for existing donor acceptance record
+        existing = DonorAcceptance.objects.filter(donor=donor, request=blood_request).first()
+
+        if existing:
+            if existing.status in ["accepted", "ignored"]:
+                return Response(
+                    {"error": f"You have already {existing.status} this request"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # If status is "pending", allow the donor to accept
 
         if action == "accept":
-            # Mark donor as unavailable once request has been accepted
+            # Mark donor as unavailable
             donor.is_available = False
             donor.save()
 
-            # Create acceptance record
-            acceptance = DonorAcceptance.objects.create(
-                donor=donor,
-                request=blood_request,
-                status="accepted"  # to be confirmed by hospital
-            )
+            # Update existing pending record or create new acceptance
+            if existing and existing.status == "pending":
+                existing.status = "accepted"
+                existing.save()
+                acceptance = existing
+            else:
+                acceptance = DonorAcceptance.objects.create(
+                    donor=donor,
+                    request=blood_request,
+                    status="accepted"
+                )
 
             # Notify hospital
             Notification.objects.create(
                 user=blood_request.hospital.user,
                 title="Blood Request Accepted",
-                message=f"Donor {donor.full_name} has accepted your blood request"
+                message=f"Donor {donor.full_name} has accepted your blood request "
                         f"for {blood_request.blood_group} ({blood_request.genotype})."
             )
 
@@ -217,12 +270,16 @@ class DonorAcceptRequestView(APIView):
             }, status=status.HTTP_201_CREATED)
 
         elif action == "ignore":
-            # Mark as ignored
-            DonorAcceptance.objects.create(
-                donor=donor,
-                request=blood_request,
-                status="ignored"
-            )
+            # Update existing pending record or create new ignored record
+            if existing and existing.status == "pending":
+                existing.status = "ignored"
+                existing.save()
+            else:
+                DonorAcceptance.objects.create(
+                    donor=donor,
+                    request=blood_request,
+                    status="ignored"
+                )
 
             # Donor remains available
             donor.is_available = True
