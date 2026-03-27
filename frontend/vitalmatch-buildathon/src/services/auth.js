@@ -67,8 +67,8 @@ export const fetchDonorsByRequest = async (requestId, token) => {
   return res.json();
 };
 
-export const confirmDonation = async ({ requestId, donorId, token }) => {
-  const res = await fetch(
+export const confirmDonation = async ({ acceptanceId, token }) => {
+  const response = await fetch(
     "https://vitalmatch-backend-service.onrender.com/api/auth/hospital/confirm-donation",
     {
       method: "POST",
@@ -77,17 +77,17 @@ export const confirmDonation = async ({ requestId, donorId, token }) => {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        request_id: requestId,
-        donor_id: donorId,
+        acceptance_id: acceptanceId, // ✅ MUST match backend exactly
       }),
     }
   );
 
-  if (!res.ok) {
-    throw new Error("Failed to confirm donation");
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to confirm donation");
   }
 
-  return res.json();
+  return response.json();
 };
 
 export const retryMatching = async ({ requestId, token }) => {

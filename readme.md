@@ -216,7 +216,7 @@ npm run dev
 **Note**: Ensure the backend service is running locally on `http://127.0.0.1:8000` for full functionality. The frontend is configured to connect to the production backend by default. For local development with local backend, you may need to update API URLs in `src/services/auth.js` or set up environment variables.
 
 ## What Makes Us Different
-k
+
 - Intelligent donor ranking (not random matching)
 - Retry system for failed matches
 - Real-time fulfillment tracking

@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { formatTime } from "../../utils/formatTime";
-import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Phone } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { fetchDonorsByRequest, confirmDonation, fetchRequestById, retryMatching } from "../../services/auth";
 
 function ViewRequest() {
   	const [activeTab, setActiveTab] = useState("all");
+	const [activeRowId, setActiveRowId] = useState(null);
   	const [matchInsight, setMatchInsight] = useState(null);
+	const [confirmedRows, setConfirmedRows] = useState(new Set());
   	const { id } = useParams();
 	const { token } = useAuth();
 
@@ -42,7 +44,8 @@ function ViewRequest() {
 		genotype: donor.genotype,
 		contact: donor.phone_number,
 		email: donor.email,
-		status: "pending",
+		status: donor.status || "pending",
+		requestId: donor.request_id, // ✅ FIXED (this is your true identity now)
 	}));
 
 	const filteredDonors = donors.filter((donor) => {
@@ -56,18 +59,24 @@ function ViewRequest() {
 	const queryClient = useQueryClient();
 
 	const toggleMutation = useMutation({
-		mutationFn: ({ donorId }) =>
-			confirmDonation({ requestId: id, donorId, token }),
+        // Passing the acceptance ID to confirm the specific donor acceptance
+        mutationFn: ({ acceptanceId }) =>
+            confirmDonation({ acceptanceId, token }),
 
-		onSuccess: () => {
-			// 🔥 refresh donors list
-			queryClient.invalidateQueries(["donors", id]);
-		},
+        onSuccess: (_, variables) => {
+            // ✅ Track the unique acceptance ID
+            setConfirmedRows(prev => new Set(prev).add(variables.acceptanceId)); 
+            setActiveRowId(null);
 
-		onError: (err) => {
-			console.error(err.message);
-		},
-	});
+            queryClient.invalidateQueries(["donors", id]);
+            queryClient.invalidateQueries(["request", id]);
+        },
+
+        onError: (err) => {
+            console.error(err.message);
+            setActiveRowId(null);
+        },
+    });
 
 	const retryMutation = useMutation({
 		mutationFn: () => retryMatching({ requestId: id, token }),
@@ -83,20 +92,6 @@ function ViewRequest() {
 			console.error(err.message);
 		},
 	});
-
-	const getStatusBadge = (status) => {
-		const styles = {
-			accepted: "bg-green-100 text-green-600",
-			pending: "bg-yellow-100 text-yellow-600",
-			declined: "bg-red-100 text-red-600",
-		};
-
-		return (
-			<span className={`px-2 py-1 rounded text-xs font-semibold ${styles[status] || styles.pending}`}>
-				{status}
-			</span>
-		);
-	};
 
 	const request = requestData
 		? {
@@ -218,21 +213,42 @@ function ViewRequest() {
                       <tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
                         <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
                         <td className="px-6 py-4">
-                          <span className="font-semibold text-red-600 mr-2">{row.group}</span> / 
+                          <span className="font-semibold text-red-600 mr-2">{row.group}</span> 
                           <span className="text-gray-500">{row.genotype}</span>
                         </td>
-                        <td className="px-6 py-4 text-gray-600">{row.contact}</td>
+                        <td className="px-6 py-4">
+							<a 
+								href={`tel:${row.contact}`}
+								className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
+								title={`Call ${row.name}`}
+							>
+								<Phone size={14} className="opacity-70" />
+								{row.contact}
+							</a>
+						</td>
                         <td className="px-6 py-4 text-gray-600">{row.email}</td>
                         {/* TOGGLE */}
                         <td className="px-6 py-4 text-center">
-                          <button
-								onClick={() => toggleMutation.mutate({ donorId: row.id })}
-								disabled={toggleMutation.isPending}
+							<button
+								onClick={() => {
+									// ✅ Track the unique acceptance ID in state
+									setActiveRowId(row.id); 
+									// Pass the acceptance ID for confirmation
+									toggleMutation.mutate({ acceptanceId: row.id }); 
+								}}
+								disabled={
+									confirmedRows.has(row.id) || // ✅ Check acceptance ID
+									(toggleMutation.isPending && activeRowId === row.id) // ✅ Check acceptance ID
+								}
 								className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
 							>
-								{toggleMutation.isPending ? "Confirming..." : "Confirm Donation"}
-							</button>
-                        </td>
+								{confirmedRows.has(row.id) // ✅ Check acceptance ID
+									? "Confirmed ✓"
+									: toggleMutation.isPending && activeRowId === row.id // ✅ Check acceptance ID
+									? "Confirming..."
+									: "Confirm Donation"}
+								</button>
+							</td>
                       </tr>
                     ))}
                   </tbody>
@@ -266,7 +282,7 @@ function ViewRequest() {
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">No Donors Found Yet</h2>
             <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-              We are still searching our database. You'll be notified immediately once a matching donor is located in your radius.
+              	We are still searching our database. You'll be notified immediately once a matching donor is located in your radius.
             </p>
             <button
 				onClick={() => retryMutation.mutate()}
