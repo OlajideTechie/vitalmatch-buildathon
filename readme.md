@@ -23,6 +23,7 @@ The system prioritizes proximity, donor reliability, and availability to ensure 
 - Figma Url:
 - Frontend URL: [Frontend-Service URL](https://vitalmatch-buildathon.vercel.app)
 - Backend Service: [Backend-Service URL](https://vitalmatch-backend-service.onrender.com)
+- Product document: [PRD link](https://docs.google.com/document/d/1-61HKvhlMHySqrSDV67Hc3hSKzDIaIvC2sdiOl5x_Tc/edit?tab=t.0#heading=h.z0dpv950mw29)
 
 ---
 
@@ -145,10 +146,12 @@ VitalMatch enables hospitals to:
   - Designed Figma prototypes
   - Created user flows and experience
 
-- [Teammate Name] (Product/Research)
+- Tosin Oladele (Product/Research)
   - Defined problem scope
   - Conducted user research
   - Shaped product direction
+  - Managed PRD, Sprint planning, and task coordination
+  - Product vision and execution
 
 ---
 
