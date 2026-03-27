@@ -265,7 +265,7 @@ class DonorAcceptRequestView(APIView):
 
             return Response({
                 "message": "Blood request accepted successfully",
-                "acceptance_id": acceptance.id,
+                "acceptance_id": acceptance.request_id,
                 "status": acceptance.status
             }, status=status.HTTP_201_CREATED)
 
