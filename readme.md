@@ -20,7 +20,7 @@ The system prioritizes proximity, donor reliability, and availability to ensure 
 ---
 
 ## Project Url(s)
-- Figma Url:
+- Figma Url: [Frontend-figma URL]([[https://vitalmatch-buildathon.vercel.app](https://www.figma.com/design/CQYK9CjaA0rYmjD1FiB8im/Vitalmatch?node-id=2-208&t=n5uKxRRVORXqVEQa-1)](https://www.figma.com/design/CQYK9CjaA0rYmjD1FiB8im/Vitalmatch?node-id=2-208&t=n5uKxRRVORXqVEQa-1))
 - Frontend URL: [Frontend-Service URL](https://vitalmatch-buildathon.vercel.app)
 - Backend Service: [Backend-Service URL](https://vitalmatch-backend-service.onrender.com)
 - Product document: [PRD link](https://docs.google.com/document/d/1-61HKvhlMHySqrSDV67Hc3hSKzDIaIvC2sdiOl5x_Tc/edit?tab=t.0#heading=h.z0dpv950mw29)
@@ -142,7 +142,7 @@ VitalMatch enables hospitals to:
   - Integrated backend APIs
   - Designed dashboards
 
-- [Teammate Name] (UI/UX Designer)
+- Kauna Ishaya (UI/UX Designer)
   - Designed Figma prototypes
   - Created user flows and experience
 
