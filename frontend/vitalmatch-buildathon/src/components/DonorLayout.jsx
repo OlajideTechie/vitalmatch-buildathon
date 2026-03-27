@@ -58,6 +58,9 @@ function DonorLayout() {
         queryFn: () => fetchProfile(token),
         enabled: !!token,
     });
+
+    const rating = data?.reward_points || 0; 
+    const isRedeemable = rating >= 5;
     
     const {
         data: notificationsData,
@@ -157,14 +160,11 @@ function DonorLayout() {
                                     {isLoading ? '...' : data?.address || location || 'Unknown'}
                                 </span>
                             </p>
-                            
-                            {/* Dynamic Reward Stars */}
+                    
                             <div className="flex justify-between items-center text-gray-300">
                                 <span>Reward:</span>
                                 <div className="flex gap-0.5">
                                     {Array.from({ length: 5 }).map((_, index) => {
-                                        // Assume data.reward_rating is a number from 0 to 5
-                                        const rating = data?.reward_points || 0; 
                                         const isFilled = index < rating;
                                         return (
                                             <Star 
@@ -177,11 +177,23 @@ function DonorLayout() {
                                     })}
                                 </div>
                             </div>
-                        </div>
-                        
-                        <Link to="/donor-dashboard/rewards" className="w-full text-white py-2 px-4 bg-white/10 hover:bg-white/20 transition rounded-full text-sm font-medium mt-5">
-                            Redeem Reward
-                        </Link>
+                                                    
+                            {/* Next closing div from your original snippet context */}
+                            </div> 
+                                                    
+                            <Link 
+                                to={isRedeemable ? "/donor-dashboard/rewards" : "#"}
+                                onClick={(e) => {
+                                    if (!isRedeemable) e.preventDefault();
+                                }}
+                                className={`block w-full text-center text-white py-2 px-4 transition rounded-full text-sm font-medium mt-5 ${
+                                    isRedeemable 
+                                        ? "bg-[#3B82F6] hover:bg-blue-600 shadow-md" 
+                                        : "bg-white/10 opacity-50 cursor-not-allowed"
+                                }`}
+                            >
+                                Redeem Reward
+                            </Link>
                     </div>
                 </div>
 

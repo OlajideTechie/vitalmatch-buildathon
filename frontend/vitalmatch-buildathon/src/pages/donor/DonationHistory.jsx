@@ -86,16 +86,22 @@ function DonationHistory() {
     if (requestsError) return <p className="text-red-500 text-center mt-10">Error: {requestsError.message}</p>;
 
   return (
-    <div className="bg-[#f8f9fa] p-4 md:p-8 font-sans text-gray-900">
+    <div className="bg-[#f8f9fa] p-4 md:p-8 w-full font-sans text-gray-900">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Donation History</h1>
-
-        <div className="space-y-5">
-          {/* Mapping through dynamic data and passing it to the reusable card */}
-          {completedRequests.map((donation) => (
-            <DonationCard key={donation.id} donation={donation} />
-          ))}
-        </div>
+            {completedRequests.length === 0 ? (
+                <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-10 text-center">
+                    <p className="text-gray-500 font-medium">No completed donations at the moment.</p>
+                </div>
+                ) : (
+                    <div className="space-y-5">
+                        {/* Mapping through dynamic data and passing it to the reusable card */}
+                        {completedRequests.map((donation) => (
+                            <DonationCard key={donation.id} donation={donation} />
+                        ))}
+                    </div>
+                )
+            }
       </div>
     </div>
   );
