@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { 
-  Search, Bell, LayoutDashboard, Star, 
+  Search, Bell, LayoutDashboard, PlusSquare, 
   List, HelpCircle, Settings, LogOut, Menu, X,
   CheckSquare
 } from 'lucide-react';
