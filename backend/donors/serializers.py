@@ -143,12 +143,14 @@ class DonorDashboardSerializer(serializers.ModelSerializer):
     blood_group = serializers.CharField(source="request.blood_group")
     genotype = serializers.CharField(source="request.genotype")
     created_at = serializers.DateTimeField(source="request.created_at")
+    request_id = serializers.SerializerMethodField()
     time_ago = serializers.SerializerMethodField()
 
     class Meta:
         model = DonorAcceptance
         fields = [
             "id",
+            "request_id"
             "hospital_name",
             "blood_group",
             "genotype",
