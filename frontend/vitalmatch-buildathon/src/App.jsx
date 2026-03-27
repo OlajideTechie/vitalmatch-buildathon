@@ -15,6 +15,7 @@ import CreateRequests from "./pages/hospital/CreateRequests";
 import ViewRequest from "./pages/hospital/ViewRequest";
 import RewardPage from "./pages/donor/RewardPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import DonationHistory from "./pages/donor/DonationHistory";
 import { AuthProvider } from "./context/AuthContext";
 
 import "../src/index.css";
@@ -67,6 +68,7 @@ function App() {
             >
               <Route index element={<DonorDashboard />} />
               <Route path="rewards" element={<RewardPage />} />
+              <Route path="donation-history" element={<DonationHistory />} />
             </Route>
 
             <Route

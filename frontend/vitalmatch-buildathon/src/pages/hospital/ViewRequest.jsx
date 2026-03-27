@@ -67,7 +67,7 @@ function ViewRequest() {
 		onError: (err) => {
 			console.error(err.message);
 		},
-k2	});
+	});
 
 	const retryMutation = useMutation({
 		mutationFn: () => retryMatching({ requestId: id, token }),
@@ -218,7 +218,7 @@ k2	});
                       <tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
                         <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
                         <td className="px-6 py-4">
-                          <span className="font-semibold text-red-600 mr-2">{row.blood_group}</span> / 
+                          <span className="font-semibold text-red-600 mr-2">{row.group}</span> / 
                           <span className="text-gray-500">{row.genotype}</span>
                         </td>
                         <td className="px-6 py-4 text-gray-600">{row.contact}</td>
