@@ -221,56 +221,68 @@ class ConfirmDonationView(APIView):
     permission_classes = [IsAuthenticated, IsHospital]
 
     def post(self, request):
-        hospital = HospitalProfile.objects.get(user=request.user)
-        acceptance_id = request.data.get("acceptance_id")
+            try:
+                hospital = HospitalProfile.objects.get(user=request.user)
+            except HospitalProfile.DoesNotExist:
+                return Response(
+                    {"error": "Hospital profile not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
-        # Fetch the donor acceptance record
-        try:
-            acceptance = DonorAcceptance.objects.select_related(
-                "donor", "request"
-            ).get(request_id=acceptance_id)
-        except DonorAcceptance.DoesNotExist:
-            return Response(
-                {"error": "Donor acceptance record not found."},
-                status=status.HTTP_404_NOT_FOUND
+            acceptance_id = request.data.get("acceptance_id")
+            if not acceptance_id:
+                return Response({"error": "acceptance_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Fetch DonorAcceptance record using public_id (UUID)
+            try:
+                acceptance = DonorAcceptance.objects.select_related(
+                    "donor", "request"
+                ).get(public_id=acceptance_id)
+            except DonorAcceptance.DoesNotExist:
+                return Response(
+                    {"error": "Donor acceptance record not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            blood_request = acceptance.request
+
+            # Ensure hospital owns the blood request
+            if blood_request.hospital != hospital:
+                return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+            # Prevent over-confirmation
+            if blood_request.fulfilled_units >= blood_request.required_units:
+                return Response({"error": "Request already completed"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update acceptance status to confirmed
+            acceptance.status = "confirmed"
+            acceptance.save(update_fields=["status"])
+
+            # Update blood request fulfillment and status
+            blood_request.fulfilled_units += 1
+            if blood_request.fulfilled_units >= blood_request.required_units:
+                blood_request.status = "completed"
+            else:
+                blood_request.status = "open"
+            blood_request.save(update_fields=["fulfilled_units", "status"])
+
+            # Update donor stats
+            donor = acceptance.donor
+            donor.reward_points += 1
+            donor.successful_donation += 1
+            donor.is_available = True  # Donor is back online
+            donor.save(update_fields=["reward_points", "successful_donation", "is_available"])
+
+            # Notify donor
+            Notification.objects.create(
+                user=donor.user,
+                title="Donation Confirmed",
+                message=f"Your donation for request {blood_request.id} has been confirmed. Thank you!"
             )
 
-        blood_request = acceptance.request
-
-        # Ensure hospital owns the blood request
-        if blood_request.hospital != hospital:
-            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
-
-        # Prevent over-confirmation
-        if blood_request.fulfilled_units >= blood_request.required_units:
-            return Response({"error": "Request already completed"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Update acceptance status to confirmed
-        acceptance.status = "confirmed"
-        acceptance.save()
-
-        # Update blood request fulfillment
-        blood_request.fulfilled_units += 1
-        blood_request.status
-        blood_request.save()
-
-        # Update donor stats and set back online
-        donor = acceptance.donor
-        donor.reward_points += 1
-        donor.successful_donation += 1
-        donor.is_available = True  # Donor is returned back online
-        donor.save()
-
-        # Notify the donor
-        Notification.objects.create(
-            user=donor.user,
-            title="Donation Confirmed",
-            message=f"Your donation for request {blood_request.id} has been confirmed. Thank you!"
-        )
-
-        return Response({
-            "message": "Donation confirmed",
-            "status": blood_request.status,
-            "fulfilled_units": blood_request.fulfilled_units,
-            "donor_status": acceptance.status
-        }, status=status.HTTP_200_OK)
+            return Response({
+                "message": "Donation confirmed",
+                "status": blood_request.status,
+                "fulfilled_units": blood_request.fulfilled_units,
+                "donor_status": acceptance.status
+            }, status=status.HTTP_200_OK)
