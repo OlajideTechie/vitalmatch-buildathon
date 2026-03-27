@@ -136,7 +136,7 @@ VitalMatch enables hospitals to:
   - Developed APIs (requests, retry, confirmation, notifications)
   - Integrated CAC verification API
 
-- [Teammate Name] (Frontend Developer)
+- Sangogade Ayomide (Frontend Developer)
   - Built user interface
   - Integrated backend APIs
   - Designed dashboards
