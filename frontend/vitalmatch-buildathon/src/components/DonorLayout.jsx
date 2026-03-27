@@ -4,10 +4,10 @@ import {
   List, HelpCircle, Settings, LogOut, Menu, X,
   CheckSquare
 } from 'lucide-react';
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { fetchProfile, fetchNotifications } from "../services/auth";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { getUserCoordinates, getAddressFromCoords } from '../utils/locationUtils';
 import { formatTime } from "../utils/formatTime";
 
@@ -24,12 +24,17 @@ function DonorLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [location, setLocation] = useState('Loading...');
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const locationHandler = useLocation();
 
     useEffect(() => {
         setSidebarOpen(false);
     }, [locationHandler.pathname]);
+
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { logout } = useAuth();
 
     useEffect(() => {
         const fetchLocation = async () => {
@@ -90,6 +95,14 @@ function DonorLayout() {
         { label: "Help Center", icon: HelpCircle },
         { label: "Setting", icon: Settings },
     ];
+
+    const handleLogout = () => {
+        logout(); // remove token
+
+        queryClient.clear(); // 🔥 wipe all cached data
+
+        navigate("/login"); // redirect
+    };
 
     return (
         <div className="flex h-screen bg-[#F8F9FC] font-sans overflow-hidden">
@@ -182,7 +195,7 @@ function DonorLayout() {
                 </div>
 
                 <div className="p-4 shrink-0 border-t border-gray-800 mt-auto">
-                    <button className="flex items-center w-full p-3 rounded-lg text-gray-400 hover:bg-[#14183E] hover:text-white transition-colors">
+                    <button onClick={() => setShowLogoutModal(true)} className="flex items-center w-full p-3 rounded-lg text-gray-400 hover:bg-[#14183E] hover:text-white transition-colors">
                         <LogOut size={20} />
                         <span className="ml-4 font-medium">Log out</span>
                     </button>
@@ -283,7 +296,45 @@ function DonorLayout() {
                     )}
                 </div>
             </aside>
-            
+            {showLogoutModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    
+                    {/* Overlay */}
+                    <div 
+                        className="absolute inset-0 bg-black/40"
+                        onClick={() => setShowLogoutModal(false)}
+                    />
+
+                    {/* Modal */}
+                    <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">
+                        Confirm Logout
+                    </h2>
+                    
+                    <p className="text-sm text-gray-600 mb-6">
+                        Are you sure you want to log out?
+                    </p>
+
+                    <div className="flex justify-end gap-3">
+                        {/* Cancel */}
+                        <button
+                            onClick={() => setShowLogoutModal(false)}
+                            className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+                        >
+                            Cancel
+                        </button>
+
+                        {/* Confirm */}
+                        <button
+                            onClick={handleLogout}
+                            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+                        >
+                            Log out
+                        </button>
+                    </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
