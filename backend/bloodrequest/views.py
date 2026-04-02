@@ -209,17 +209,6 @@ class DonorAcceptRequestView(APIView):
     """
     permission_classes = [IsAuthenticated, IsDonor]
 
-class DonorAcceptRequestView(APIView):
-    """
-    Accept or ignore a blood request.
-
-    Request body:
-    {
-        "action": "accept" or "ignore"
-    }
-    """
-    permission_classes = [IsAuthenticated, IsDonor]
-
     def post(self, request, request_id):
         # Validate action
         serializer = DonorAcceptanceSerializer(data=request.data)

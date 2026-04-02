@@ -148,7 +148,7 @@ class DonorDashboardView(APIView):
         return Response({
             "incoming_requests": [
                 {
-                    "request_id": str(r.request.public_id),
+                    "request_id": str(r.request.id),
                     "hospital_name": r.request.hospital.full_name,
                     "blood_group": r.request.blood_group,
                     "genotype": r.request.genotype,

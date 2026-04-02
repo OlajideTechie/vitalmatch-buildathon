@@ -7,6 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
+import re
 
 
 # Load environment variables
@@ -49,7 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # must be at the top
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -223,20 +224,40 @@ LOGGING = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = [
-    origin for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if origin
-]
+
+
+# Quick dev option
+CORS_ALLOW_ALL_ORIGINS = True 
+
+# Allow all localhost frontend origins
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",
+#     "https://dfab-102-219-155-6.ngrok-free.app",
+# ]
+
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOW_HEADERS = [
-    "accept", "accept-encoding", "authorization", "content-type",
-    "origin", "x-csrftoken", "x-requested-with",
+    "accept",
+    "accept-encoding",
+    "authorization", 
+    "content-type",
+    "origin",
+    "x-csrftoken",
+    "x-requested-with",
 ]
-CORS_ALLOW_CREDENTIALS = False
+
+APPEND_SLASH = False
 
 # Secure cookies (disable for local dev)
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
+# CSRF trusted origins for API forms (if ever needed)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://b6fc-102-89-41-90.ngrok-free.app",
+]
 
 # Interswitch API Settings
 INTERSWITCH_AUTH_URL = os.getenv("INTERSWITCH_AUTH_URL")

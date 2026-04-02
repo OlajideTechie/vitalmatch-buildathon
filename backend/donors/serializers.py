@@ -149,8 +149,7 @@ class DonorDashboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = DonorAcceptance
         fields = [
-            "id",
-            "request_id"
+            "request_id", 
             "hospital_name",
             "blood_group",
             "genotype",
@@ -158,6 +157,9 @@ class DonorDashboardSerializer(serializers.ModelSerializer):
             "created_at",
             "time_ago"
         ]    
+
+    def get_request_id(self, obj):
+        return str(obj.request.id)
 
     def get_time_ago(self, obj):
         created_at = obj.request.created_at
