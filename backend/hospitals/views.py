@@ -8,6 +8,8 @@ from common.hospital_permissions import IsHospital
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.db.models import F
 from donors.models import DonorProfile
 from notifications.models import Notification
 from bloodrequest.models import DonorAcceptance
@@ -221,34 +223,38 @@ class ConfirmDonationView(APIView):
     permission_classes = [IsAuthenticated, IsHospital]
 
     def post(self, request):
-            try:
-                hospital = HospitalProfile.objects.get(user=request.user)
-            except HospitalProfile.DoesNotExist:
-                return Response(
-                    {"error": "Hospital profile not found"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+        try:
+            hospital = HospitalProfile.objects.get(user=request.user)
+        except HospitalProfile.DoesNotExist:
+            return Response(
+                {"error": "Hospital profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-            acceptance_id = request.data.get("acceptance_id")
-            if not acceptance_id:
-                return Response({"error": "acceptance_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        acceptance_id = request.data.get("acceptance_id")
+        if not acceptance_id:
+            return Response({"error": "acceptance_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Fetch DonorAcceptance record using public_id (UUID)
-            try:
-                acceptance = DonorAcceptance.objects.select_related(
-                    "donor", "request"
-                ).get(public_id=acceptance_id)
-            except DonorAcceptance.DoesNotExist:
-                return Response(
-                    {"error": "Donor acceptance record not found."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+        # Fetch DonorAcceptance record using public_id (UUID)
+        try:
+            acceptance = DonorAcceptance.objects.select_related(
+                "donor", "request"
+            ).get(public_id=acceptance_id)
+        except DonorAcceptance.DoesNotExist:
+            return Response(
+                {"error": "Donor acceptance record not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-            blood_request = acceptance.request
+        blood_request = acceptance.request
 
-            # Ensure hospital owns the blood request
-            if blood_request.hospital != hospital:
-                return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+        # Ensure hospital owns the blood request
+        if blood_request.hospital != hospital:
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        with transaction.atomic():
+            # Lock the blood request row to prevent concurrent updates
+            blood_request = BloodRequest.objects.select_for_update().get(id=blood_request.id)
 
             # Prevent over-confirmation
             if blood_request.fulfilled_units >= blood_request.required_units:
@@ -258,31 +264,36 @@ class ConfirmDonationView(APIView):
             acceptance.status = "confirmed"
             acceptance.save(update_fields=["status"])
 
-            # Update blood request fulfillment and status
-            blood_request.fulfilled_units += 1
+            # Atomically increment fulfilled_units using F() to avoid race conditions
+            BloodRequest.objects.filter(id=blood_request.id).update(
+                fulfilled_units=F('fulfilled_units') + 1
+            )
+            blood_request.refresh_from_db()
+
+            # Update status based on new fulfilled_units
             if blood_request.fulfilled_units >= blood_request.required_units:
                 blood_request.status = "completed"
-            else:
-                blood_request.status = "open"
-            blood_request.save(update_fields=["fulfilled_units", "status"])
+            elif blood_request.fulfilled_units > 0:
+                blood_request.status = "partial"
+            blood_request.save(update_fields=["status"])
 
-            # Update donor stats
-            donor = acceptance.donor
-            donor.reward_points += 1
-            donor.successful_donation += 1
-            donor.is_available = True  # Donor is back online
-            donor.save(update_fields=["reward_points", "successful_donation", "is_available"])
-
-            # Notify donor
-            Notification.objects.create(
-                user=donor.user,
-                title="Donation Confirmed",
-                message=f"Your donation for request {blood_request.id} has been confirmed. Thank you!"
+            # Atomically update donor stats
+            DonorProfile.objects.filter(id=acceptance.donor_id).update(
+                reward_points=F('reward_points') + 1,
+                successful_donation=F('successful_donation') + 1,
+                is_available=True
             )
 
-            return Response({
-                "message": "Donation confirmed",
-                "status": blood_request.status,
-                "fulfilled_units": blood_request.fulfilled_units,
-                "donor_status": acceptance.status
-            }, status=status.HTTP_200_OK)
+        # Notify donor (outside transaction — non-critical)
+        Notification.objects.create(
+            user=acceptance.donor.user,
+            title="Donation Confirmed",
+            message=f"Your donation for request {blood_request.id} has been confirmed. Thank you!"
+        )
+
+        return Response({
+            "message": "Donation confirmed",
+            "status": blood_request.status,
+            "fulfilled_units": blood_request.fulfilled_units,
+            "donor_status": acceptance.status
+        }, status=status.HTTP_200_OK)

@@ -1,3 +1,4 @@
+from django.db import transaction
 from donors.models import DonorProfile
 from bloodrequest.models import DonorAcceptance
 from haversine import haversine, Unit
@@ -65,13 +66,14 @@ def match_donors(blood_request, search_radius_km=10):
     limit = blood_request.required_units + 2
     results = results[:limit]
 
-    # Create pending records
-    for item in results:
-        DonorAcceptance.objects.get_or_create(
-            donor=item["donor"],
-            request=blood_request,
-            defaults={"status": "pending"}
-        )
+    # Create pending records atomically
+    with transaction.atomic():
+        for item in results:
+            DonorAcceptance.objects.get_or_create(
+                donor=item["donor"],
+                request=blood_request,
+                defaults={"status": "pending"}
+            )
 
     if results:
         return results, None

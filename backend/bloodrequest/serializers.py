@@ -29,7 +29,7 @@ class BloodRequestProgressSerializer(serializers.ModelSerializer):
             ]
 
     def get_progress_percentage(self, obj):
-        return round(obj.fulfilled_units / obj.required_units) * 100 if obj.required_units else 0
+        return round((obj.fulfilled_units / obj.required_units) * 100) if obj.required_units else 0
 
 
 class DonorAcceptanceSerializer(serializers.ModelSerializer):

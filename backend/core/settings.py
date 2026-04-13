@@ -7,7 +7,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
-import re
 
 
 # Load environment variables
@@ -219,28 +218,30 @@ LOGGING = {
     },
     'loggers': {
         'django': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': True},
-        'hospitals': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
+        'hospitals': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'donors': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'bloodrequest': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'notifications': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'services': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
     },
 }
 
 # CORS settings
-
-
-# Quick dev option
-CORS_ALLOW_ALL_ORIGINS = True 
-
-# Allow all localhost frontend origins
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-#     "https://dfab-102-219-155-6.ngrok-free.app",
-# ]
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,https://vitalmatch-buildathon.vercel.app'
+    ).split(',')
+    if origin.strip()
+]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
-    "authorization", 
+    "authorization",
     "content-type",
     "origin",
     "x-csrftoken",
@@ -255,8 +256,12 @@ CSRF_COOKIE_SECURE = False
 
 # CSRF trusted origins for API forms (if ever needed)
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://b6fc-102-89-41-90.ngrok-free.app",
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'http://localhost:5173,https://vitalmatch-buildathon.vercel.app'
+    ).split(',')
+    if origin.strip()
 ]
 
 # Interswitch API Settings

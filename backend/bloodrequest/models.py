@@ -39,7 +39,7 @@ class BloodRequest(models.Model):
         super().save(*args, **kwargs) 
     
     def __str__(self):
-        return f"{self.hospital.name} - {self.blood_group} ({self.status})"
+        return f"{self.hospital.full_name} - {self.blood_group} ({self.status})"
 
 
 class DonorAcceptance(models.Model):

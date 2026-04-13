@@ -3,11 +3,10 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework import status, permissions
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from datetime import datetime, timezone
+from datetime import datetime, timezone as dt_timezone
 from .models import DonorProfile
 from bloodrequest.models import BloodRequest, DonorAcceptance
 from rest_framework.permissions import IsAuthenticated
-from services.matching import haversine
 from django.utils.timesince import timesince
 from common.donor_permissions import IsDonor
 from django.utils import timezone
@@ -41,7 +40,7 @@ class DonorRegisterView(APIView):
             refresh = RefreshToken.for_user(user)
             access = AccessToken.for_user(user)
 
-            expires_in = datetime.fromtimestamp(access['exp'], tz=timezone.utc) - datetime.now(timezone.utc)
+            expires_in = datetime.fromtimestamp(access['exp'], tz=dt_timezone.utc) - timezone.now()
 
             profile = DonorProfile.objects.filter(user=user).first()
             profile_data = DonorProfileFullSerializer(profile).data if profile else None
@@ -84,7 +83,7 @@ class DonorLoginView(APIView):
                 refresh_token = RefreshToken.for_user(user)
                 access_token = AccessToken.for_user(user) 
 
-                expires_in = datetime.fromtimestamp(access_token.payload['exp']) - datetime.now()
+                expires_in = datetime.fromtimestamp(access_token.payload['exp'], tz=dt_timezone.utc) - timezone.now()
 
                 profile = DonorProfile.objects.filter(user=user).first()
                 profile_data = DonorProfileLoginSerializer(profile).data if profile else None
@@ -118,16 +117,6 @@ class DonorDashboardView(APIView):
         donor = request.user.donorprofile
 
         # INCOMING → Pending (not yet accepted or ignored Donations)
-        matched_requests = BloodRequest.objects.filter(
-            blood_group=donor.blood_group,
-            genotype=donor.genotype,
-            status="open"  # optional depending on your model
-        )
-
-        acted_request_ids = DonorAcceptance.objects.filter(
-            donor=donor
-        ).values_list("request_id", flat=True)
-
         incoming_requests = DonorAcceptance.objects.filter(
             donor=request.user.donorprofile,  # the logged-in donor
             status="pending"

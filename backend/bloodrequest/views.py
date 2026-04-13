@@ -1,5 +1,3 @@
-from services.matching import match_donors
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +5,7 @@ from common.hospital_permissions import IsHospital
 from common.donor_permissions import IsDonor
 
 from .models import HospitalProfile, BloodRequest, DonorAcceptance, DonorProfile
-from .serializers import ( 
+from .serializers import (
     BloodRequestSerializer,
     DonorAcceptanceSerializer,
     RetryMatchSerializer
@@ -17,6 +15,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from notifications.models import Notification
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from django.utils import timezone
 from datetime import timedelta
@@ -103,8 +102,8 @@ class RetryMatchView(APIView):
     serializer_class = RetryMatchSerializer
     permission_classes = [IsAuthenticated, IsHospital]
 
-    MAX_RADIUS_KM = 5
-    INITIAL_RADIUS_KM = 500
+    INITIAL_RADIUS_KM = 5
+    MAX_RADIUS_KM = 500
     RADIUS_INCREMENT_KM = 50
     COOLDOWN_SECONDS = 60
 
@@ -202,12 +201,14 @@ class DonorAcceptRequestView(APIView):
 
     """
         Accept or ignore a blood request.
-        Request body can contain:
+        Request body contains the action to perform:
         {
             "action": "accept"  or "ignore"
         }
     """
     permission_classes = [IsAuthenticated, IsDonor]
+
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, request_id):
         # Validate action
