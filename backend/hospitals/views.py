@@ -171,7 +171,7 @@ View Accepted donors for a request
 @extend_schema(
     tags=["Hospitals"]
 )
-class BloodRequestAccepteddDonorsView(APIView):
+class BloodRequestAcceptedDonorsView(APIView):
     serializer_class = DonorInfoSerializer
     permission_classes = [IsAuthenticated, IsHospital]
 
@@ -184,13 +184,12 @@ class BloodRequestAccepteddDonorsView(APIView):
         hospital = request.user.hospitalprofile
         blood_request = get_object_or_404(BloodRequest, id=request_id, hospital=hospital)
         
-        # Filter donors dynamically
+        # Filter donors uniquely and return donors who have accepted this request
         donors_qs = DonorProfile.objects.filter(
-            is_available=True,
-            blood_group=blood_request.blood_group,
-            genotype=blood_request.genotype
-        )
-
+            donoracceptance__request=blood_request,
+            donoracceptance__status="accepted"
+        ).distinct().order_by('created_at')
+        
         paginator = self.DonorPagination()
         paginated_donors = paginator.paginate_queryset(donors_qs, request)
 
