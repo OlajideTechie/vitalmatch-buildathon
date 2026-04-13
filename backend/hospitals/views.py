@@ -188,7 +188,7 @@ class BloodRequestAcceptedDonorsView(APIView):
         donors_qs = DonorProfile.objects.filter(
             donoracceptance__request=blood_request,
             donoracceptance__status="accepted"
-        ).distinct().order_by('created_at')
+        ).distinct().order_by('donoracceptance__created_at')
         
         paginator = self.DonorPagination()
         paginated_donors = paginator.paginate_queryset(donors_qs, request)
