@@ -184,23 +184,25 @@ class BloodRequestAcceptedDonorsView(APIView):
         hospital = request.user.hospitalprofile
         blood_request = get_object_or_404(BloodRequest, id=request_id, hospital=hospital)
         
-        # Filter donors uniquely and return donors who have accepted this request
-        donors_qs = DonorProfile.objects.filter(
-            donoracceptance__request=blood_request,
-            donoracceptance__status="accepted"
-        ).distinct().order_by('donoracceptance__created_at')
-        
+        # Return donors who accepted or completed donation for this request
+        acceptances_qs = DonorAcceptance.objects.filter(
+            request=blood_request,
+            status__in=["accepted", "confirmed"]
+        ).select_related("donor", "donor__user").order_by('-status')
+
         paginator = self.DonorPagination()
-        paginated_donors = paginator.paginate_queryset(donors_qs, request)
+        paginated_acceptances = paginator.paginate_queryset(acceptances_qs, request)
 
         data = [
             {
-                "full_name": donor.full_name,
-                "email": donor.user.email,
-                "phone_number": donor.phone_number,
-                "blood_group": donor.blood_group,
-                "genotype": donor.genotype,
-            } for donor in paginated_donors
+                "acceptance_id": str(acceptance.public_id),
+                "status": acceptance.status,
+                "full_name": acceptance.donor.full_name,
+                "email": acceptance.donor.user.email,
+                "phone_number": acceptance.donor.phone_number,
+                "blood_group": acceptance.donor.blood_group,
+                "genotype": acceptance.donor.genotype,
+            } for acceptance in paginated_acceptances
         ]
 
         return paginator.get_paginated_response(data)
