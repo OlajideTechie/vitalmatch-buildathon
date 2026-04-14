@@ -209,6 +209,17 @@ class DonorAcceptRequestView(APIView):
     """
     permission_classes = [IsAuthenticated, IsDonor]
 
+class DonorAcceptRequestView(APIView):
+    """
+    Accept or ignore a blood request.
+
+    Request body:
+    {
+        "action": "accept" or "ignore"
+    }
+    """
+    permission_classes = [IsAuthenticated, IsDonor]
+
     def post(self, request, request_id):
         # Validate action
         serializer = DonorAcceptanceSerializer(data=request.data)
@@ -219,76 +230,98 @@ class DonorAcceptRequestView(APIView):
         try:
             donor = DonorProfile.objects.get(user=request.user)
         except DonorProfile.DoesNotExist:
-            return Response({"error": "Donor profile not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Donor profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        # Get blood request
+        # Get blood request (UUID-safe if applicable)
         try:
             blood_request = BloodRequest.objects.get(id=request_id)
         except BloodRequest.DoesNotExist:
-            return Response({"error": "Blood request not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Blood request not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        # Check for existing donor acceptance record
-        existing = DonorAcceptance.objects.filter(donor=donor, request=blood_request).first()
+        # Get existing acceptance record (enforced unique)
+        try:
+            existing = DonorAcceptance.objects.get(
+                donor=donor,
+                request=blood_request
+            )
+        except DonorAcceptance.DoesNotExist:
+            existing = None
 
-        if existing:
-            if existing.status in ["accepted", "ignored"]:
-                return Response(
-                    {"error": f"You have already {existing.status} this request"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            # If status is "pending", allow the donor to accept
+        # Prevent duplicate actions
+        if existing and existing.status in ["accepted", "ignored"]:
+            return Response(
+                {"error": f"You have already {existing.status} this request"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        # =========================
+        # ACCEPT FLOW
+        # =========================
         if action == "accept":
-            # Mark donor as unavailable
+            # Mark donor unavailable
             donor.is_available = False
-            donor.save()
+            donor.save(update_fields=["is_available"])
 
-            # Update existing pending record or create new acceptance
-            if existing and existing.status == "pending":
+            if existing:
                 existing.status = "accepted"
-                existing.save()
+                existing.save(update_fields=["status"])
                 acceptance = existing
             else:
-                acceptance = DonorAcceptance.objects.create(
+                acceptance, _ = DonorAcceptance.objects.get_or_create(
                     donor=donor,
                     request=blood_request,
-                    status="accepted"
+                    defaults={"status": "accepted"}
                 )
 
             # Notify hospital
             Notification.objects.create(
                 user=blood_request.hospital.user,
                 title="Blood Request Accepted",
-                message=f"Donor {donor.full_name} has accepted your blood request "
-                        f"for {blood_request.blood_group} ({blood_request.genotype})."
+                message=(
+                    f"Donor {donor.full_name} has accepted your blood request "
+                    f"for {blood_request.blood_group} ({blood_request.genotype})."
+                )
             )
 
             return Response({
                 "message": "Blood request accepted successfully",
-                "acceptance_id": acceptance.request_id,
+                "acceptance_id": str(acceptance.public_id),  # UUID
                 "status": acceptance.status
             }, status=status.HTTP_201_CREATED)
 
+        # =========================
+        # IGNORE FLOW
+        # =========================
         elif action == "ignore":
-            # Update existing pending record or create new ignored record
-            if existing and existing.status == "pending":
+            if existing:
                 existing.status = "ignored"
-                existing.save()
+                existing.save(update_fields=["status"])
             else:
-                DonorAcceptance.objects.create(
+                DonorAcceptance.objects.get_or_create(
                     donor=donor,
                     request=blood_request,
-                    status="ignored"
+                    defaults={"status": "ignored"}
                 )
 
             # Donor remains available
             donor.is_available = True
-            donor.save()
+            donor.save(update_fields=["is_available"])
 
             return Response({
-                "message": "You have ignored this blood request and it will no longer appear in your list",
+                "message": "You have ignored this blood request",
                 "status": "ignored"
             }, status=status.HTTP_200_OK)
 
-        else:
-            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+        # =========================
+        # INVALID ACTION
+        # =========================
+        return Response(
+            {"error": "Invalid action"},
+            status=status.HTTP_400_BAD_REQUEST
+        )

@@ -28,13 +28,14 @@ The system prioritizes proximity, donor reliability, and availability to ensure 
 ---
 
 ## Test Credentials
+
 Hospital:
-username: hospital1
-password: test1234
+email: hospital24@gmail.com
+password: Password@123
 
 Donor:
-username: donor1
-password: test1234
+username: donortest-user@gmail.com
+password: Password@123
 
 ---
 

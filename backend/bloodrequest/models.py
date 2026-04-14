@@ -44,6 +44,7 @@ class BloodRequest(models.Model):
 
 class DonorAcceptance(models.Model):
     STATUS_CHOICES = [
+        ('pending', 'Pending'),
         ('accepted', 'Accepted'),
         ('confirmed', 'Confirmed'),
         ('ignored', 'Ignored'),
@@ -52,7 +53,17 @@ class DonorAcceptance(models.Model):
     donor = models.ForeignKey(DonorProfile, on_delete=models.CASCADE)
     request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='accepted')
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
