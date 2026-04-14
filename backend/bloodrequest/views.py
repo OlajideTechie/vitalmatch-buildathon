@@ -8,7 +8,8 @@ from .models import HospitalProfile, BloodRequest, DonorAcceptance, DonorProfile
 from .serializers import (
     BloodRequestSerializer,
     DonorAcceptanceSerializer,
-    RetryMatchSerializer
+    RetryMatchSerializer,
+    UpdateBloodRequestSerializer
 )
 from services.matching import match_donors
 from drf_spectacular.types import OpenApiTypes
@@ -40,6 +41,22 @@ class CreateRequestView(APIView):
 
         serializer = BloodRequestSerializer(data=request.data)
         if serializer.is_valid():
+            existing = BloodRequest.objects.filter(
+                hospital=hospital,
+                blood_group=serializer.validated_data['blood_group'],
+                genotype=serializer.validated_data['genotype'],
+                status__in=['open', 'partial']
+            ).first()
+
+            if existing:
+                return Response(
+                    {
+                        "error": "You already have an active request for this blood group and genotype.",
+                        "existing_request_id": str(existing.id)
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             blood_request = serializer.save(hospital=hospital)
 
             # Dynamic radius expansion
@@ -315,3 +332,48 @@ class DonorAcceptRequestView(APIView):
             {"error": "Invalid action"},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+@extend_schema(tags=["Hospitals"])
+class UpdateBloodRequestView(APIView):
+    """
+    Increase required_units on an existing active blood request.
+    Used when a hospital needs more units of the same blood group/genotype.
+    """
+    serializer_class = UpdateBloodRequestSerializer
+    permission_classes = [IsAuthenticated, IsHospital]
+
+    def patch(self, request, request_id):
+        try:
+            hospital = HospitalProfile.objects.get(user=request.user)
+        except HospitalProfile.DoesNotExist:
+            return Response({"error": "Hospital profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        blood_request = BloodRequest.objects.filter(
+            id=request_id, hospital=hospital
+        ).first()
+
+        if not blood_request:
+            return Response({"error": "Blood request not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if blood_request.status == "completed":
+            return Response(
+                {"error": "Cannot update a completed request"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = UpdateBloodRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        additional_units = serializer.validated_data["additional_units"]
+        blood_request.required_units += additional_units
+        blood_request.save(update_fields=["required_units"])
+
+        return Response({
+            "message": f"Request updated. {additional_units} unit(s) added.",
+            "request_id": str(blood_request.id),
+            "required_units": blood_request.required_units,
+            "fulfilled_units": blood_request.fulfilled_units,
+            "status": blood_request.status
+        }, status=status.HTTP_200_OK)

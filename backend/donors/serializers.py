@@ -25,7 +25,7 @@ class DonorRegisterSerializer(serializers.Serializer):
     gender = serializers.ChoiceField(choices=['male', 'female', 'other'])
 
     blood_group = serializers.ChoiceField(choices=['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'])
-    genotype = serializers.ChoiceField(choices=['AA', 'AS', 'SS', 'AC', 'SC'])
+    genotype = serializers.ChoiceField(choices=['AA', 'AS'])
     has_donated_before = serializers.BooleanField()
 
     latitude = serializers.FloatField(required=True)

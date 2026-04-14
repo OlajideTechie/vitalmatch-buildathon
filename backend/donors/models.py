@@ -19,9 +19,6 @@ class DonorProfile(models.Model):
     GENOTYPES = [
         ('AA', 'AA'),
         ('AS', 'AS'),
-        ('SS', 'SS'),
-        ('AC', 'AC'),
-        ('SC', 'SC'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

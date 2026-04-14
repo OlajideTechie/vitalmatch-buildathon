@@ -2,7 +2,14 @@ from rest_framework import serializers
 from .models import BloodRequest, DonorAcceptance
 
 
+VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+VALID_GENOTYPES = ['AA', 'AS']
+
+
 class BloodRequestSerializer(serializers.ModelSerializer):
+    blood_group = serializers.ChoiceField(choices=VALID_BLOOD_GROUPS)
+    genotype = serializers.ChoiceField(choices=VALID_GENOTYPES)
+
     class Meta:
         model = BloodRequest
         fields = '__all__'
@@ -51,6 +58,10 @@ class DonorInfoSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     blood_group = serializers.CharField()
     genotype = serializers.CharField()
+
+
+class UpdateBloodRequestSerializer(serializers.Serializer):
+    additional_units = serializers.IntegerField(min_value=1)
 
 
 class RetryMatchSerializer(serializers.Serializer):
