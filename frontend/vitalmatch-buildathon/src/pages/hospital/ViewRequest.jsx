@@ -226,9 +226,9 @@ function ViewRequest() {
 								{row.contact}
 							</a>
 						</td>
-                        <td className="px-6 py-4 text-gray-600">{row.email}</td>
-                        {/* TOGGLE */}
-                        <td className="px-6 py-4 text-center">
+            <td className="px-6 py-4 text-gray-600">{row.email}</td>
+            {/* TOGGLE */}
+            <td className="px-6 py-4 text-center">
 							<button
 								onClick={() => {
 									// ✅ Track the unique acceptance ID in state

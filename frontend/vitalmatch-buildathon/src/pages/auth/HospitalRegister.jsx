@@ -5,140 +5,117 @@ import { getUserCoordinates, getAddressFromCoords } from '../../utils/locationUt
 import { useMutation } from "@tanstack/react-query";
 import {Link, useNavigate} from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { registerHospital } from '../../services/auth';
 import toast from "react-hot-toast";
 
 function HospitalRegister() {
-  const navigate = useNavigate();
-  const [globalError, setGlobalError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    rcNumber: '',
-    hospitalType: '',
-    password: '',
-    confirmPassword: '',
-    stateText: '',
-    addressText: '',
-    coordinates: {
-      lat: null,
-      lon: null
-    }
-  });
-  const [errors, setErrors] = useState({});
+	const navigate = useNavigate();
+	const [globalError, setGlobalError] = useState('');
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+	const { login } = useAuth();
+	const [formData, setFormData] = useState({
+		fullName: '',
+		phone: '',
+		email: '',
+		rcNumber: '',
+		hospitalType: '',
+		password: '',
+		confirmPassword: '',
+		stateText: '',
+		addressText: '',
+		coordinates: {
+		lat: null,
+		lon: null
+		}
+	});
+	const [errors, setErrors] = useState({});
 
-  const handleGetLocation = async () => {
-    try {
-      const coords = await getUserCoordinates();
-      const locationDetails = await getAddressFromCoords(coords.lat, coords.lon);
-      
-      setFormData((prev) => ({
-        ...prev,
-        coordinates: coords,
-        stateText: locationDetails.state,
-        addressText: locationDetails.address
-      }));
-      
-      setErrors((prev) => ({ ...prev, location: '' }));
-    } catch (error) {
-      alert(error.message || "Unable to retrieve your location");
-    }
-  };
+	const handleGetLocation = async () => {
+		try {
+		const coords = await getUserCoordinates();
+		const locationDetails = await getAddressFromCoords(coords.lat, coords.lon);
+		
+		setFormData((prev) => ({
+			...prev,
+			coordinates: coords,
+			stateText: locationDetails.state,
+			addressText: locationDetails.address
+		}));
+		
+		setErrors((prev) => ({ ...prev, location: '' }));
+		} catch (error) {
+		alert(error.message || "Unable to retrieve your location");
+		}
+	};
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
+	const handleInputChange = (e) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({ ...prev, [name]: value }));
+		if (errors[name]) {
+		setErrors((prev) => ({ ...prev, [name]: '' }));
+		}
+	};
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.fullName.trim()) newErrors.fullName = "Hospital name is required";
-    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
-    
-    if (!formData.email.trim()) {
-      newErrors.email = "Email address is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-    
-    if (!formData.rcNumber.trim()) newErrors.rcNumber = "RC Number is required";
-    if (!formData.hospitalType) newErrors.hospitalType = "Please select your hospital type";
-    
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
+	const validateForm = () => {
+		const newErrors = {};
+		
+		if (!formData.fullName.trim()) newErrors.fullName = "Hospital name is required";
+		if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+		
+		if (!formData.email.trim()) {
+		newErrors.email = "Email address is required";
+		} else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+		newErrors.email = "Please enter a valid email address";
+		}
+		
+		if (!formData.rcNumber.trim()) newErrors.rcNumber = "RC Number is required";
+		if (!formData.hospitalType) newErrors.hospitalType = "Please select your hospital type";
+		
+		if (!formData.password) {
+		newErrors.password = "Password is required";
+		} else if (formData.password.length < 8) {
+		newErrors.password = "Password must be at least 8 characters";
+		}
+		
+		if (formData.password !== formData.confirmPassword) {
+		newErrors.confirmPassword = "Passwords do not match";
+		}
 
-    if (!formData.coordinates.lat || !formData.coordinates.lon) {
-      newErrors.location = "Please provide your location using the button above";
-    }
+		if (!formData.coordinates.lat || !formData.coordinates.lon) {
+		newErrors.location = "Please provide your location using the button above";
+		}
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
-  setGlobalError('');
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		setGlobalError('');
 
-  if (validateForm()) {
-    const payload = {
-      full_name: formData.fullName,
-      phone_number: formData.phone,
-      email: formData.email,
-      password: formData.password,
-      confirm_password: formData.confirmPassword,
-      rc_number: formData.rcNumber,
-      hospital_type: formData.hospitalType,
-      latitude: formData.coordinates.lat,
-      longitude: formData.coordinates.lon,
-    };
+	if (validateForm()) {
+		const payload = {
+		full_name: formData.fullName,
+		phone_number: formData.phone,
+		email: formData.email,
+		password: formData.password,
+		confirm_password: formData.confirmPassword,
+		rc_number: formData.rcNumber,
+		hospital_type: formData.hospitalType,
+		latitude: formData.coordinates.lat,
+		longitude: formData.coordinates.lon,
+		};
 
-    mutation.mutate(payload);
-  }
-};
+		mutation.mutate(payload);
+	}
+	};
 
-    const registerHospital = async (payload) => {
-        const res = await fetch(
-            "https://vitalmatch-backend-service.onrender.com/api/auth/hospital/register",
-            {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-            }
-        );
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            // Attach backend response to error
-            const error = new Error(data.message || "Registration failed");
-            error.response = { data };
-            throw error;
-        }
-
-        return data;
-    };
-    
-      const mutation = useMutation({
-        mutationFn: registerHospital,
+    const mutation = useMutation({
+        mutationFn: (payload) => registerHospital(payload),
         onSuccess: (data) => {
           toast.success("Registration successful 🎉");
-          login(data.user, data.access_token);
+          login(data.access_token);
 
           navigate("/hospital-dashboard");
         },
@@ -179,7 +156,7 @@ function HospitalRegister() {
               const cleanKey = key.replace('_', ' ').toUpperCase();
               toast.error(`${cleanKey}: ${msg}`);
             });
-          });
+        });
 
           // If we found specific field errors, set them and STOP execution here
           if (mappedAtLeastOneField) {
@@ -200,10 +177,9 @@ function HospitalRegister() {
         toast.error("Registration failed.");
       }
     },
-  });
+});
 
-    
-  return (
+return (
     <div className="flex h-screen w-full font-sans overflow-hidden bg-white">
       
       {/* Left Pane - Fixed Branding & Info */}

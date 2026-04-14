@@ -30,7 +30,7 @@ function DonorDashboard() {
 
     const pendingRequests = (incomingRequests).map((req) => ({
         // FIX 2: Map to the correct properties from your API response
-        id: req.request_id, 
+        id: req.public_id, 
         hospitalName: req.hospital_name,
         bloodGroup: req.blood_group,
         genotype: req.genotype,
@@ -156,7 +156,7 @@ function DonorDashboard() {
                                     respondMutation.mutate({ requestId: req.id, action: "accept" })
                                 }
                                     disabled={respondMutation.isPending}
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl disabled:opacity-50"
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl disabled:opacity-50 cursor-pointer"
                                 >
                                     Accept
                                 </button>
@@ -166,7 +166,7 @@ function DonorDashboard() {
                                         respondMutation.mutate({ requestId: req.id, action: "ignore" })
                                     }
                                     disabled={respondMutation.isPending}
-                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-xl disabled:opacity-50"
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-xl disabled:opacity-50 cursor-pointer"
                                 >
                                     Decline
                                 </button>

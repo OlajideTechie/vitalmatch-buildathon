@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle } from 'lucide-react';
 import { useMutation } from "@tanstack/react-query";
+import { loginUser } from '../../services/auth';
 import toast from "react-hot-toast";
 import InputField from '../../components/InputField';
 import PasswordInput from '../../components/PasswordInput';
@@ -17,30 +18,10 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const { login } = useAuth();
 
-  const loginUser = async (payload) => {
-    const res = await fetch(
-      "https://vitalmatch-backend-service.onrender.com/api/auth/donor/login",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      const error = new Error(data.message || "Login failed");
-      error.response = { data };
-      throw error;
-    }
-    return data;
-  };
-
   const mutation = useMutation({
-    mutationFn: loginUser,
+    mutationFn: (payload) => loginUser(payload),
     onSuccess: (data) => {
-      login(data.user, data.access_token);
+      login(data.access_token);
 
       toast.success("Welcome back! 👋");
 

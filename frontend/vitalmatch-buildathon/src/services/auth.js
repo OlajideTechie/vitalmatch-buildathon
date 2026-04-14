@@ -1,6 +1,77 @@
+const BASE_URL = "https://b6fc-102-89-41-90.ngrok-free.app"
+
+// https://dfab-102-219-155-6.ngrok-free.app
+export const loginUser = async (payload) => {
+    const res = await fetch(
+      `${BASE_URL}/api/auth/donor/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const error = new Error(data.message || "Login failed");
+      error.response = { data };
+      throw error;
+    }
+    return data;
+};
+
+export const registerDonor = async (payload) => {
+	const res = await fetch(
+		`${BASE_URL}/api/auth/donor/register`,
+		{
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(payload),
+		}
+	);
+
+	const data = await res.json();
+
+	if (!res.ok) {
+		// Attach backend response to error
+		const error = new Error(data.message || "Registration failed");
+		error.response = { data };
+		throw error;
+	}
+
+	return data;
+};
+
+export const registerHospital = async (payload) => {
+	const res = await fetch(
+		`${BASE_URL}/api/auth/hospital/register`,
+		{
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(payload),
+		}
+	);
+
+	const data = await res.json();
+
+	if (!res.ok) {
+		// Attach backend response to error
+		const error = new Error(data.message || "Registration failed");
+		error.response = { data };
+		throw error;
+	}
+
+	return data;
+};
+
 export const fetchProfile = async (token) => {
   const response = await fetch(
-    'https://vitalmatch-backend-service.onrender.com/api/auth/profile',
+    `${BASE_URL}/api/auth/profile`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -17,7 +88,7 @@ export const fetchProfile = async (token) => {
 
 export const fetchRequests = async (token) => {
   const response = await fetch(
-    'https://vitalmatch-backend-service.onrender.com/api/auth/hospital/blood-requests',
+    `${BASE_URL}/api/auth/hospital/blood-requests`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -35,7 +106,7 @@ export const fetchRequests = async (token) => {
 // services/requests.js
 export const fetchRequestById = async (requestId, token) => {
   const res = await fetch(
-    `https://vitalmatch-backend-service.onrender.com/api/auth/hospital/blood-requests/${requestId}`,
+    `${BASE_URL}/api/auth/hospital/blood-requests/${requestId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -52,7 +123,7 @@ export const fetchRequestById = async (requestId, token) => {
 
 export const fetchDonorsByRequest = async (requestId, token) => {
   const res = await fetch(
-    `https://vitalmatch-backend-service.onrender.com/api/auth/hospital/blood-requests/${requestId}/donors`,
+    `${BASE_URL}/api/auth/hospital/blood-requests/${requestId}/donors`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -69,7 +140,7 @@ export const fetchDonorsByRequest = async (requestId, token) => {
 
 export const confirmDonation = async ({ acceptanceId, token }) => {
   const response = await fetch(
-    "https://vitalmatch-backend-service.onrender.com/api/auth/hospital/confirm-donation",
+    `${BASE_URL}/api/auth/hospital/confirm-donation`,
     {
       method: "POST",
       headers: {
@@ -92,7 +163,7 @@ export const confirmDonation = async ({ acceptanceId, token }) => {
 
 export const retryMatching = async ({ requestId, token }) => {
   const res = await fetch(
-    `https://vitalmatch-backend-service.onrender.com/api/hospital/blood-requests/${requestId}/retry-matching`,
+    `${BASE_URL}/api/hospital/blood-requests/${requestId}/retry-matching`,
     {
       method: "POST",
       headers: {
@@ -110,7 +181,7 @@ export const retryMatching = async ({ requestId, token }) => {
 
 export const fetchNotifications = async (token) => {
   const res = await fetch(
-    "https://vitalmatch-backend-service.onrender.com/api/notifications",
+    `${BASE_URL}/api/notifications`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -127,7 +198,7 @@ export const fetchNotifications = async (token) => {
 
 export const fetchDonorRequests = async (token) => {
   const res = await fetch(
-    "https://vitalmatch-backend-service.onrender.com/api/auth/donor/requests/dashboard",
+    `${BASE_URL}/api/auth/donor/requests/dashboard`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -144,7 +215,7 @@ export const fetchDonorRequests = async (token) => {
 
 export const respondToRequest = async ({ requestId, status, token }) => {
   const res = await fetch(
-    `https://vitalmatch-backend-service.onrender.com/api/donor/requests/${requestId}/respond`,
+    `${BASE_URL}/api/donor/requests/${requestId}/respond`,
     {
       method: "POST",
       headers: {

@@ -6,156 +6,133 @@ import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {Link, useNavigate} from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { registerDonor } from '../../services/auth';
 
 function DonorRegister() {
-  const navigate = useNavigate();
-  const [isBloodGroupOpen, setIsBloodGroupOpen] = useState(false);
-  const [isGenotypeOpen, setIsGenotypeOpen] = useState(false);
-  const [selectedBloodGroup, setSelectedBloodGroup] = useState('');
-  const [selectedGenotype, setSelectedGenotype] = useState('');
-  const [globalError, setGlobalError] = useState('');
+	const navigate = useNavigate();
+	const [isBloodGroupOpen, setIsBloodGroupOpen] = useState(false);
+	const [isGenotypeOpen, setIsGenotypeOpen] = useState(false);
+	const [selectedBloodGroup, setSelectedBloodGroup] = useState('');
+	const [selectedGenotype, setSelectedGenotype] = useState('');
+	const [globalError, setGlobalError] = useState('');
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { login } = useAuth();
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+	const { login } = useAuth();
 
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    nin: '',
-    gender: '',
-    donatedBefore: '',
-    password: '',
-    confirmPassword: '',
-    stateText: '',
-    addressText: '',
-    coordinates: {
-      lat: null,
-      lon: null
-    }
-  });
-  const [errors, setErrors] = useState({});
+	const [formData, setFormData] = useState({
+		fullName: '',
+		phone: '',
+		email: '',
+		nin: '',
+		gender: '',
+		donatedBefore: '',
+		password: '',
+		confirmPassword: '',
+		stateText: '',
+		addressText: '',
+		coordinates: {
+		lat: null,
+		lon: null
+		}
+	});
+	const [errors, setErrors] = useState({});
 
-  const bloodGroups = ['A+', 'O+', 'B+', 'O-', 'A-', 'AB', 'B-'];
-  const genotypes = ['AA', 'AS', 'SS', 'AC', 'SC'];
+	const bloodGroups = ['A+', 'O+', 'B+', 'O-', 'A-', 'AB', 'B-'];
+	const genotypes = ['AA', 'AS', 'SS', 'AC', 'SC'];
 
-  const handleGetLocation = async () => {
-    try {
-      const coords = await getUserCoordinates();
-      const locationDetails = await getAddressFromCoords(coords.lat, coords.lon);
-      
-      setFormData((prev) => ({
-        ...prev,
-        coordinates: coords,
-        stateText: locationDetails.state,
-        addressText: locationDetails.address
-      }));
-      
-      setErrors((prev) => ({ ...prev, location: '' }));
-    } catch (error) {
-      alert(error.message || "Unable to retrieve your location");
-    }
-  };
+	const handleGetLocation = async () => {
+		try {
+		const coords = await getUserCoordinates();
+		const locationDetails = await getAddressFromCoords(coords.lat, coords.lon);
+		
+		setFormData((prev) => ({
+			...prev,
+			coordinates: coords,
+			stateText: locationDetails.state,
+			addressText: locationDetails.address
+		}));
+		
+		setErrors((prev) => ({ ...prev, location: '' }));
+		} catch (error) {
+		alert(error.message || "Unable to retrieve your location");
+		}
+	};
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
+	const handleInputChange = (e) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({ ...prev, [name]: value }));
+		if (errors[name]) {
+		setErrors((prev) => ({ ...prev, [name]: '' }));
+		}
+	};
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
-    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
-    
-    if (!formData.email.trim()) {
-      newErrors.email = "Email address is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-    
-    if (!formData.nin.trim()) newErrors.nin = "NIN is required";
-    if (!formData.gender) newErrors.gender = "Please select your gender";
-    if (!selectedBloodGroup) newErrors.bloodGroup = "Please select a blood group";
-    if (!selectedGenotype) newErrors.genotype = "Please select a genotype";
-    if (!formData.donatedBefore) newErrors.donatedBefore = "Please select an option";
-    
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
+	const validateForm = () => {
+		const newErrors = {};
+		
+		if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
+		if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+		
+		if (!formData.email.trim()) {
+		newErrors.email = "Email address is required";
+		} else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+		newErrors.email = "Please enter a valid email address";
+		}
+		
+		if (!formData.nin.trim()) newErrors.nin = "NIN is required";
+		if (!formData.gender) newErrors.gender = "Please select your gender";
+		if (!selectedBloodGroup) newErrors.bloodGroup = "Please select a blood group";
+		if (!selectedGenotype) newErrors.genotype = "Please select a genotype";
+		if (!formData.donatedBefore) newErrors.donatedBefore = "Please select an option";
+		
+		if (!formData.password) {
+		newErrors.password = "Password is required";
+		} else if (formData.password.length < 8) {
+		newErrors.password = "Password must be at least 8 characters";
+		}
+		
+		if (formData.password !== formData.confirmPassword) {
+		newErrors.confirmPassword = "Passwords do not match";
+		}
 
-    if (!formData.coordinates.lat || !formData.coordinates.lon) {
-      newErrors.location = "Please provide your location using the button above";
-    }
+		if (!formData.coordinates.lat || !formData.coordinates.lon) {
+		newErrors.location = "Please provide your location using the button above";
+		}
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
-  setGlobalError('');
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		setGlobalError('');
 
-  if (validateForm()) {
-    const payload = {
-      full_name: formData.fullName,
-      phone_number: formData.phone,
-      email: formData.email,
-      password: formData.password,
-      confirm_password: formData.confirmPassword,
-      nin: formData.nin,
-      gender: formData.gender,
-      blood_group: selectedBloodGroup,
-      genotype: selectedGenotype,
-      has_donated_before: formData.donatedBefore === "yes",
-      latitude: formData.coordinates.lat,
-      longitude: formData.coordinates.lon,
-    };
+		if (validateForm()) {
+			const payload = {
+			full_name: formData.fullName,
+			phone_number: formData.phone,
+			email: formData.email,
+			password: formData.password,
+			confirm_password: formData.confirmPassword,
+			nin: formData.nin,
+			gender: formData.gender,
+			blood_group: selectedBloodGroup,
+			genotype: selectedGenotype,
+			has_donated_before: formData.donatedBefore === "yes",
+			latitude: formData.coordinates.lat,
+			longitude: formData.coordinates.lon,
+			};
 
-    mutation.mutate(payload);
-  }
-};
-
-    const registerDonor = async (payload) => {
-        const res = await fetch(
-            "https://vitalmatch-backend-service.onrender.com/api/auth/donor/register",
-            {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-            }
-        );
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            // Attach backend response to error
-            const error = new Error(data.message || "Registration failed");
-            error.response = { data };
-            throw error;
-        }
-
-        return data;
-    };
+			mutation.mutate(payload);
+		}
+	};
 
     const mutation = useMutation({
-    mutationFn: registerDonor,
+    mutationFn: (payload) => registerDonor(payload),
 
     onSuccess: (data) => {
       toast.success("Registration successful 🎉");
-      login(data.user, data.access_token);
+      login(data.access_token);
 
       navigate("/donor-dashboard");
     },
