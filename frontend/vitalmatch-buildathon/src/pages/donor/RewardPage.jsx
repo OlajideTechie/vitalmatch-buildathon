@@ -99,7 +99,7 @@ const RewardCard = ({ reward }) => {
 // --- Main Page Component ---
 export default function RewardPage() {
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans p-6 md:p-10">
+    <div className="text-gray-900 font-sans p-6 md:p-10 w-full">
       <div className="max-w-3xl mx-auto space-y-8">
         
         {/* Header Section */}
@@ -111,7 +111,7 @@ export default function RewardPage() {
         </div>
 
         {/* Balance Card */}
-        <div className="bg-[#f4f8fd] rounded-2xl p-6 w-full max-w-[340px]">
+        <div className="bg-[#E5F2FF80] rounded-2xl p-6 w-full max-w-[340px]">
           <h2 className="text-sm font-bold text-gray-900 mb-2">Your Point Balance</h2>
           <div className="flex items-center gap-1 mb-1.5">
             <span className="text-2xl font-extrabold mr-1">5 Points</span>
