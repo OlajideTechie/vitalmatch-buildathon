@@ -62,7 +62,8 @@ function HospitalDashboard() {
         },
     ];
 
-    const activeRequests = requestsData?.map((req) => ({
+    const filteredActiveRequests = requestsData?.filter(req => req.status === 'open') || [];
+    const activeRequests = filteredActiveRequests.map((req) => ({
         id: req.id,
         bloodGroup: req.blood_group,
         genotype: req.genotype,
@@ -134,7 +135,7 @@ function HospitalDashboard() {
                             </div>
 
                             <button 
-                                className="w-full text-[#F4F7FB] hover:bg-blue-700 bg-[#3B82F6] hover:text-white font-semibold py-3 rounded-xl transition-colors duration-200"
+                                className="w-full text-[#F4F7FB] hover:bg-blue-700 bg-[#3B82F6] cursor-pointer hover:text-white font-semibold py-3 rounded-xl transition-colors duration-200"
                                 onClick={() => navigate(`/hospital/requests/${req.id}`)}
                             >
                                 View Details

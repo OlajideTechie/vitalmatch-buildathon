@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 
 import LandingPage from "./pages/LandingPage";
+import CompletedRequests from "./pages/hospital/CompletedRequests";
 import Login from "./pages/auth/LogIn";
 import VitalMatchOnboarding from "./VitalMatchOnboarding";
 import HospitalRegister from "./pages/auth/HospitalRegister";
@@ -81,6 +82,7 @@ function App() {
             >
               <Route index element={<HospitalDashboard />} />
               <Route path="create-request" element={<CreateRequests />} />
+              <Route path="completed-requests" element={<CompletedRequests />} />
             </Route>
 
             {/* Optional: Catch-all route */}

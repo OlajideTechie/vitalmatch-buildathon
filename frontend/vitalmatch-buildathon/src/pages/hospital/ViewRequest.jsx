@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { formatTime } from "../../utils/formatTime";
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Phone } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { fetchDonorsByRequest, confirmDonation, fetchRequestById, retryMatching } from "../../services/auth";
 
 function ViewRequest() {
+	const navigate = useNavigate();
   	const [activeTab, setActiveTab] = useState("accepted");
 	const [activeRowId, setActiveRowId] = useState(null);
   	const [matchInsight, setMatchInsight] = useState(null);
@@ -104,14 +105,30 @@ function ViewRequest() {
   return (
     <div className="flex-1 bg-gray-50/50 p-6 md:p-8 text-gray-800 font-sans">
       <div className="max-w-6xl mx-auto">
-        
         {/* HEADER */}
-        <div className="mb-8 flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Blood Request Details</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage and track potential donors for this request.</p>
-          </div>
-        </div>
+			<div className="mb-8 flex flex-col gap-4">
+			{/* Back Button */}
+			<button 
+				onClick={() => navigate(-1)} 
+				className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors w-max group"
+			>
+				<div className="p-1.5 rounded-lg group-hover:bg-gray-100">
+					<ChevronLeft size={20} />
+				</div>
+				<span className="text-sm font-medium">Back to Requests</span>
+			</button>
+
+			<div className="flex justify-between items-end">
+				<div>
+					<h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+						Blood Request Details
+					</h1>
+					<p className="text-sm text-gray-500 mt-1">
+						Manage and track potential donors for this request.
+					</p>
+				</div>
+			</div>
+		</div>
 
 		{matchInsight && (
 			<div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
@@ -120,7 +137,12 @@ function ViewRequest() {
 		)}
 
         {/* DETAILS CARD */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 w-full">
+		{!request && !isPageLoading ? (
+		<div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex items-center gap-3 text-amber-700">
+			<AlertCircle size={20} />
+			<p className="font-medium">Request details could not be found. It may have been deleted.</p>
+		</div>
+		) :	(<div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
             {[
 				{ label: "Request ID", value: request?.id, highlight: true },
@@ -145,7 +167,7 @@ function ViewRequest() {
               </div>
             ))}
           </div>
-        </div>
+        </div>)}
 
         {/* CONTENT AREA: STATE MANAGEMENT */}
         {isPageLoading ? (

@@ -11,9 +11,16 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { getUserCoordinates, getAddressFromCoords } from '../utils/locationUtils';
 import { formatTime } from "../utils/formatTime";
 
-function NavItem({ icon, label, to}) {
+function NavItem({ icon, label, to, isActive }) {
   return (
-    <Link to={to} className="flex items-center w-full p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-blue-600 transition-colors">
+    <Link 
+      to={to} 
+      className={`flex items-center w-full p-3 rounded-lg transition-colors ${
+        isActive 
+          ? "bg-blue-600 text-white" 
+          : "text-gray-400 hover:bg-[#14183E] hover:text-white"
+      }`}
+    >
       <span>{icon}</span>
       <span className="ml-4 text-sm font-medium">{label}</span>
     </Link>
@@ -90,7 +97,7 @@ function HospitalLayout() {
     const navItems = [
         { label: "Dashboard", icon: LayoutDashboard, to: "/hospital-dashboard" },
         { label: "Create Emergency Request", icon: PlusSquare, to: "/hospital-dashboard/create-request" },
-        { label: "View All Requests", icon: List },
+        { label: "Completed Requests", icon: List, to: "/hospital-dashboard/completed-requests" },
         { label: "Help Center", icon: HelpCircle },
         { label: "Setting", icon: Settings },
     ];
@@ -125,7 +132,7 @@ function HospitalLayout() {
                         <h2 className="text-white font-semibold">
                             {isLoading ? 'Loading...' : data?.full_name || 'Hospital'}
                         </h2>
-                        <h2 className="text-white font-semibold">Hospital</h2>
+                        <p className="text-white font-semibold">Hospital</p>
                         <p className="text-gray-400 text-sm mb-2">{location}</p>
                         <span
                             className={`${
@@ -150,7 +157,7 @@ function HospitalLayout() {
                 {/* MODIFIED: Changed overflow-hidden to overflow-y-auto and hid the scrollbar */}
                 <div className="sidebar-scroll flex-1 px-4 space-y-2 overflow-y-auto whitespace-nowrap pb-4">
                     {navItems.map(({label, icon: Icon, to}, key) => (
-                        <NavItem key={key} icon={<Icon size={20} />} label={label} to={to} />
+                        <NavItem key={key} icon={<Icon size={20} />} label={label} to={to} isActive={locationHandler.pathname === to} />
                     ))}
                 </div>
 
