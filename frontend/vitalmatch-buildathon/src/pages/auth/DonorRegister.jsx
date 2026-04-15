@@ -39,7 +39,7 @@ function DonorRegister() {
 	const [errors, setErrors] = useState({});
 
 	const bloodGroups = ['A+', 'O+', 'B+', 'O-', 'A-', 'AB', 'B-'];
-	const genotypes = ['AA', 'AS', 'SS', 'AC', 'SC'];
+	const genotypes = ['AA', 'AS'];
 
 	const handleGetLocation = async () => {
 		try {

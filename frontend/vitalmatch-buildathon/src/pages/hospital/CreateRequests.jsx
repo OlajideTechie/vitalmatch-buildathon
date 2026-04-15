@@ -12,7 +12,7 @@ function CreateRequests() {
     const [selectedGenotype, setSelectedGenotype] = useState('');
   
   	const bloodGroups = ['A+', 'O+', 'B+', 'O-', 'A-', 'AB', 'B-'];
-	const genotypes = ['AA', 'AS', 'SS', 'AC', 'SC'];
+	const genotypes = ['AA', 'AS'];
 	const { token } = useAuth();
 	const [formData, setFormData] = useState({
 		requiredUnits: '',
