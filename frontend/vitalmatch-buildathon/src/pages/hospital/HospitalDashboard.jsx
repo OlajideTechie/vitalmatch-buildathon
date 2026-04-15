@@ -116,8 +116,8 @@ function HospitalDashboard() {
                             <div className="space-y-3 mb-6 text-sm flex-1">
                                 <DetailRow label="Blood Group:" value={req.bloodGroup} />
                                 <DetailRow label="Genotype:" value={req.genotype} />
-                                <DetailRow label="Required Units:" value={`${req.requiredUnits} Unit(s)`} />
-                                <DetailRow label="Fulfilled Units:" value={`${req.fulfilledUnits} Unit(s)`} />
+                                <DetailRow label="Required Units:" value={`${req.requiredUnits} unit(s)`} />
+                                <DetailRow label="Fulfilled Units:" value={`${req.fulfilledUnits} unit(s)`} />
                                 
                                 {/* --- 5. VISUAL PROGRESS BAR --- */}
                                 <div className="pt-2">

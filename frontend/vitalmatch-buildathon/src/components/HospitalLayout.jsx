@@ -17,7 +17,7 @@ function NavItem({ icon, label, to, isActive }) {
       to={to} 
       className={`flex items-center w-full p-3 rounded-lg transition-colors ${
         isActive 
-          ? "bg-blue-600 text-white" 
+          ? "bg-[#3B82F6] text-white" 
           : "text-gray-400 hover:bg-[#14183E] hover:text-white"
       }`}
     >
