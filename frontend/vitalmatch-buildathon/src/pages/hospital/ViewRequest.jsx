@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { fetchDonorsByRequest, confirmDonation, fetchRequestById, retryMatching } from "../../services/auth";
 
 function ViewRequest() {
-  	const [activeTab, setActiveTab] = useState("all");
+  	const [activeTab, setActiveTab] = useState("accepted");
 	const [activeRowId, setActiveRowId] = useState(null);
   	const [matchInsight, setMatchInsight] = useState(null);
 	const [confirmedRows, setConfirmedRows] = useState(new Set());
@@ -27,31 +27,27 @@ function ViewRequest() {
 
 	const {
 		data: donorsData,
-			isLoading,
-			isError,
-			error,
-			// refetch,
-		} = useQuery({
-			queryKey: ["donors", id],
-			queryFn: () => fetchDonorsByRequest(id, token),
-			enabled: !!id && !!token,
+		isLoading,
+		isError,
+		error,
+		refetch, 
+	} = useQuery({
+		queryKey: ["donors", id],
+		queryFn: () => fetchDonorsByRequest(id, token),
+		enabled: !!id && !!token,
 	});
-
+	
 	const donors = (donorsData?.results || []).map((donor) => ({
-		id: donor.id,
+		id: donor.acceptance_id,
 		name: donor.full_name,
 		group: donor.blood_group,
 		genotype: donor.genotype,
 		contact: donor.phone_number,
 		email: donor.email,
-		status: donor.status || "pending",
-		requestId: donor.request_id, // ✅ FIXED (this is your true identity now)
+		status: donor.status
 	}));
 
-	const filteredDonors = donors.filter((donor) => {
-		if (activeTab === "all") return true;
-		return donor.status === activeTab;
-	});
+	const filteredDonors = donors.filter((donor) => donor.status === activeTab);
 
 	const isPageLoading = requestLoading || isLoading;
 	const isPageError = requestError || isError;
@@ -60,12 +56,12 @@ function ViewRequest() {
 
 	const toggleMutation = useMutation({
         // Passing the acceptance ID to confirm the specific donor acceptance
-        mutationFn: ({ acceptanceId }) =>
-            confirmDonation({ acceptanceId, token }),
+        mutationFn: ({ acceptance_id }) =>
+            confirmDonation({ acceptance_id, token }),
 
         onSuccess: (_, variables) => {
             // ✅ Track the unique acceptance ID
-            setConfirmedRows(prev => new Set(prev).add(variables.acceptanceId)); 
+            setConfirmedRows(prev => new Set(prev).add(variables.acceptance_id)); 
             setActiveRowId(null);
 
             queryClient.invalidateQueries(["donors", id]);
@@ -173,10 +169,8 @@ function ViewRequest() {
             <div className="p-4 border-b border-gray-100 bg-white">
               <div className="inline-flex bg-gray-100/80 p-1 rounded-xl overflow-x-auto w-full md:w-auto">
                 {[
-                  { key: "all", label: "All Responses" },
-                  { key: "accepted", label: "Accepted" },
-                  { key: "pending", label: "Pending" },
-                  { key: "declined", label: "Declined" },
+                  { key: "accepted", label: "Accepted Donors" },
+                  { key: "confirmed", label: "Confirmed Donors" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -199,58 +193,82 @@ function ViewRequest() {
                 <div className="p-12 text-center text-gray-500 text-sm">No donors found in this category.</div>
               ) : (
                 <table className="w-full text-sm text-left whitespace-nowrap">
+				{activeTab === "accepted" ? (
                   <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
                     <tr>
                       <th className="px-6 py-4 font-medium">Donor's name</th>
-                      <th className="px-6 py-4 font-medium">Blood / Genotype</th>
                       <th className="px-6 py-4 font-medium">Contact</th>
                       <th className="px-6 py-4 font-medium">Email</th>
                       <th className="px-6 py-4 font-medium">Action</th>
                     </tr>
                   </thead>
+				) : (
+					<thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
+						<tr>
+							<th className="px-6 py-4 font-medium">Donor's name</th>
+							<th className="px-6 py-4 font-medium">Contact</th>
+							<th className="px-6 py-4 font-medium">Email</th>
+						</tr>
+					</thead>
+					)
+				}
                   <tbody className="divide-y divide-gray-100">
-                    {filteredDonors.map((row) => (
-                      <tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
-                        <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
-                        <td className="px-6 py-4">
-                          <span className="font-semibold text-red-600 mr-2">{row.group}</span> 
-                          <span className="text-gray-500">{row.genotype}</span>
-                        </td>
-                        <td className="px-6 py-4">
-							<a 
-								href={`tel:${row.contact}`}
-								className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
-								title={`Call ${row.name}`}
-							>
-								<Phone size={14} className="opacity-70" />
-								{row.contact}
-							</a>
-						</td>
-            <td className="px-6 py-4 text-gray-600">{row.email}</td>
-            {/* TOGGLE */}
-            <td className="px-6 py-4 text-center">
-							<button
-								onClick={() => {
-									// ✅ Track the unique acceptance ID in state
-									setActiveRowId(row.id); 
-									// Pass the acceptance ID for confirmation
-									toggleMutation.mutate({ acceptanceId: row.id }); 
-								}}
-								disabled={
-									confirmedRows.has(row.id) || // ✅ Check acceptance ID
-									(toggleMutation.isPending && activeRowId === row.id) // ✅ Check acceptance ID
-								}
-								className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-							>
-								{confirmedRows.has(row.id) // ✅ Check acceptance ID
-									? "Confirmed ✓"
-									: toggleMutation.isPending && activeRowId === row.id // ✅ Check acceptance ID
-									? "Confirming..."
-									: "Confirm Donation"}
-								</button>
+                    {activeTab === "accepted" ? 
+						(filteredDonors.map((row) => (
+						<tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
+							<td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
+							<td className="px-6 py-4">
+								<a 
+									href={`tel:${row.contact}`}
+									className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
+									title={`Call ${row.name}`}
+								>
+									<Phone size={14} className="opacity-70" />
+									{row.contact}
+								</a>
 							</td>
-                      </tr>
-                    ))}
+							<td className="px-6 py-4 text-gray-600">{row.email}</td>
+							{/* TOGGLE */}
+							<td className="px-6 py-4 text-center">
+								<button
+									onClick={() => {
+										// ✅ Track the unique acceptance ID in state
+										setActiveRowId(row.id); 
+										// Pass the acceptance ID for confirmation
+										toggleMutation.mutate({ acceptance_id: row.id }); 
+									}}
+									disabled={
+										confirmedRows.has(row.id) || // ✅ Check acceptance ID
+										(toggleMutation.isPending && activeRowId === row.id) // ✅ Check acceptance ID
+									}
+									className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+								>
+									{confirmedRows.has(row.id) // ✅ Check acceptance ID
+										? "Confirmed ✓"
+										: toggleMutation.isPending && activeRowId === row.id // ✅ Check acceptance ID
+										? "Confirming..."
+										: "Confirm Donation"}
+									</button>
+								</td>
+						</tr>
+						))) 
+						:
+						(filteredDonors.map((row) => (
+							<tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
+								<td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
+								<td className="px-6 py-4">
+									<a 
+										href={`tel:${row.contact}`}
+										className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
+										title={`Call ${row.name}`}
+									>
+										<Phone size={14} className="opacity-70" />
+										{row.contact}
+									</a>
+								</td>
+								<td className="px-6 py-4 text-gray-600">{row.email}</td>
+							</tr>
+						)))}
                   </tbody>
                 </table>
               )}

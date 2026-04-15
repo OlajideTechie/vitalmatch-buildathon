@@ -59,8 +59,8 @@ function DonorLayout() {
         enabled: !!token,
     });
 
-    const rating = data?.reward_points || 0; 
-    const isRedeemable = rating >= 5;
+    const rating = data?.reward_points || 0;
+    const isRedeemable = rating >= 1;
     
     const {
         data: notificationsData,

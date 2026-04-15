@@ -27,10 +27,10 @@ function DonorDashboard() {
 
     const incomingRequests = requestsData?.incoming_requests || [];
     const activeRequestsRaw = requestsData?.active_requests || [];
-
+    
     const pendingRequests = (incomingRequests).map((req) => ({
         // FIX 2: Map to the correct properties from your API response
-        id: req.public_id, 
+        id: req.request_id, 
         hospitalName: req.hospital_name,
         bloodGroup: req.blood_group,
         genotype: req.genotype,
@@ -63,8 +63,8 @@ function DonorDashboard() {
     const queryClient = useQueryClient();
 
     const respondMutation = useMutation({
-        mutationFn: ({ requestId, action }) =>
-            respondToRequest({ requestId, action, token }),
+        mutationFn: ({ acceptance_id, action, token }) =>
+            respondToRequest({ acceptance_id, action, token }),
 
         onSuccess: (_, variables) => {
             setActionType(variables.action);
@@ -153,7 +153,7 @@ function DonorDashboard() {
                             <div className="flex gap-4">
                                 <button
                                     onClick={() =>
-                                    respondMutation.mutate({ requestId: req.id, action: "accept" })
+                                    respondMutation.mutate({ acceptance_id: req.id, action: "accept", token })
                                 }
                                     disabled={respondMutation.isPending}
                                     className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl disabled:opacity-50 cursor-pointer"
@@ -163,7 +163,7 @@ function DonorDashboard() {
 
                                 <button
                                     onClick={() =>
-                                        respondMutation.mutate({ requestId: req.id, action: "ignore" })
+                                        respondMutation.mutate({ acceptance_id: req.id, action: "ignore", token })
                                     }
                                     disabled={respondMutation.isPending}
                                     className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-xl disabled:opacity-50 cursor-pointer"

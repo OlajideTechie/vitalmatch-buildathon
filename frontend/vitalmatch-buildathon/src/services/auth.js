@@ -1,6 +1,5 @@
-const BASE_URL = "https://b6fc-102-89-41-90.ngrok-free.app"
+const BASE_URL = "https://vitalmatch-backend-service.onrender.com"
 
-// https://dfab-102-219-155-6.ngrok-free.app
 export const loginUser = async (payload) => {
     const res = await fetch(
       `${BASE_URL}/api/auth/donor/login`,
@@ -138,7 +137,7 @@ export const fetchDonorsByRequest = async (requestId, token) => {
   return res.json();
 };
 
-export const confirmDonation = async ({ acceptanceId, token }) => {
+export const confirmDonation = async ({ acceptance_id, token }) => {
   const response = await fetch(
     `${BASE_URL}/api/auth/hospital/confirm-donation`,
     {
@@ -148,7 +147,7 @@ export const confirmDonation = async ({ acceptanceId, token }) => {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        acceptance_id: acceptanceId, // ✅ MUST match backend exactly
+        acceptance_id, // ✅ MUST match backend exactly
       }),
     }
   );
@@ -213,16 +212,20 @@ export const fetchDonorRequests = async (token) => {
   return res.json();
 };
 
-export const respondToRequest = async ({ requestId, status, token }) => {
+export const respondToRequest = async ({ acceptance_id, action, token }) => {
+  const formData = new URLSearchParams();
+  formData.append("acceptance_id", acceptance_id);
+  formData.append("action", action);
+
   const res = await fetch(
-    `${BASE_URL}/api/donor/requests/${requestId}/respond`,
+    `${BASE_URL}/api/donor/requests/${acceptance_id}/respond`,
     {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ status }), // "accepted" or "declined"
+      body: formData
     }
   );
 
