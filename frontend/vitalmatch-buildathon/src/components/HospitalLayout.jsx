@@ -10,22 +10,7 @@ import { fetchProfile, fetchNotifications } from "../services/auth";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { getUserCoordinates, getAddressFromCoords } from '../utils/locationUtils';
 import { formatTime } from "../utils/formatTime";
-
-function NavItem({ icon, label, to, isActive }) {
-  return (
-    <Link 
-      to={to} 
-      className={`flex items-center w-full p-3 rounded-lg transition-colors ${
-        isActive 
-          ? "bg-[#3B82F6] text-white" 
-          : "text-gray-400 hover:bg-[#14183E] hover:text-white"
-      }`}
-    >
-      <span>{icon}</span>
-      <span className="ml-4 text-sm font-medium">{label}</span>
-    </Link>
-  );
-}
+import NavItem from "./NavItem";
 
 function HospitalLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -98,8 +83,8 @@ function HospitalLayout() {
         { label: "Dashboard", icon: LayoutDashboard, to: "/hospital-dashboard" },
         { label: "Create Emergency Request", icon: PlusSquare, to: "/hospital-dashboard/create-request" },
         { label: "Completed Requests", icon: List, to: "/hospital-dashboard/completed-requests" },
-        { label: "Help Center", icon: HelpCircle },
-        { label: "Setting", icon: Settings },
+        // { label: "Help Center", icon: HelpCircle },
+        // { label: "Setting", icon: Settings },
     ];
 
     const handleLogout = () => {
