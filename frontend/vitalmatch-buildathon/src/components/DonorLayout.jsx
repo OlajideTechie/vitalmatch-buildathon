@@ -85,8 +85,8 @@ function DonorLayout() {
     const navItems = [
         { label: "Dashboard", icon: LayoutDashboard, to: "/donor-dashboard" },
         { label: "Donation History", icon: List, to: "/donor-dashboard/donation-history" },
-        // { label: "Help Center", icon: HelpCircle },
-        // { label: "Setting", icon: Settings },
+        { label: "Help Center", icon: HelpCircle },
+        { label: "Setting", icon: Settings },
     ];
 
     const handleLogout = () => {

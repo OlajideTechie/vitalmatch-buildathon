@@ -83,8 +83,8 @@ function HospitalLayout() {
         { label: "Dashboard", icon: LayoutDashboard, to: "/hospital-dashboard" },
         { label: "Create Emergency Request", icon: PlusSquare, to: "/hospital-dashboard/create-request" },
         { label: "Completed Requests", icon: List, to: "/hospital-dashboard/completed-requests" },
-        // { label: "Help Center", icon: HelpCircle },
-        // { label: "Setting", icon: Settings },
+        { label: "Help Center", icon: HelpCircle },
+        { label: "Setting", icon: Settings },
     ];
 
     const handleLogout = () => {
