@@ -140,8 +140,8 @@ function CreateRequests() {
 
     return (
         <div className="w-full h-full overflow-y-auto scroll-smooth relative">
-            <div className="min-h-full md:p-20 p-8 py-12">
-                <div className="w-full">
+            <div className="min-h-full flex flex-col items-center justify-start pt-20 px-8 pb-8">
+                <div className="w-full max-w-md">
                     
                     <h2 className="text-2xl font-bold text-[#0A0A0A] mb-2">Create Blood Request</h2>
                     <p className="text-[#434248] text-sm mb-8">

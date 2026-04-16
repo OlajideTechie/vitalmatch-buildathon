@@ -2,66 +2,69 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import { formatTime } from "../../utils/formatTime";
-import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Phone } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Phone, Users, MapPin, Activity } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { fetchDonorsByRequest, confirmDonation, fetchRequestById, retryMatching } from "../../services/auth";
 
 function ViewRequest() {
-	const navigate = useNavigate();
-  	const [activeTab, setActiveTab] = useState("accepted");
-	const [activeRowId, setActiveRowId] = useState(null);
-  	const [matchInsight, setMatchInsight] = useState(null);
-	const [confirmedRows, setConfirmedRows] = useState(new Set());
-  	const { id } = useParams();
-	const { token } = useAuth();
+    const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState("accepted");
+    const [activeRowId, setActiveRowId] = useState(null);
+    const [matchInsight, setMatchInsight] = useState(null);
+    const [confirmedRows, setConfirmedRows] = useState(new Set());
+    
+    // Modal states
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newMatches, setNewMatches] = useState([]);
+	const [hasExpanded, setHasExpanded] = useState(false);
 
-	const {
-		data: requestData,
-		isLoading: requestLoading,
-		isError: requestError,
-		error: requestErr,
-		} = useQuery({
-		queryKey: ["request", id],
-		queryFn: () => fetchRequestById(id, token),
-		enabled: !!id && !!token,
-	});
+    const { id } = useParams();
+    const { token } = useAuth();
 
-	const {
-		data: donorsData,
-		isLoading,
-		isError,
-		error,
-		refetch, 
-	} = useQuery({
-		queryKey: ["donors", id],
-		queryFn: () => fetchDonorsByRequest(id, token),
-		enabled: !!id && !!token,
-	});
-	
-	const donors = (donorsData?.results || []).map((donor) => ({
-		id: donor.acceptance_id,
-		name: donor.full_name,
-		group: donor.blood_group,
-		genotype: donor.genotype,
-		contact: donor.phone_number,
-		email: donor.email,
-		status: donor.status
-	}));
+    const {
+        data: requestData,
+        isLoading: requestLoading,
+        isError: requestError,
+        } = useQuery({
+        queryKey: ["request", id],
+        queryFn: () => fetchRequestById(id, token),
+        enabled: !!id && !!token,
+    });
 
-	const filteredDonors = donors.filter((donor) => donor.status === activeTab);
+    const {
+        data: donorsData,
+        isLoading,
+        isError,
+        error,
+        refetch, 
+    } = useQuery({
+        queryKey: ["donors", id],
+        queryFn: () => fetchDonorsByRequest(id, token),
+        enabled: !!id && !!token,
+    });
+    
+    const donors = (donorsData?.results || []).map((donor) => ({
+        id: donor.acceptance_id,
+        name: donor.full_name,
+        group: donor.blood_group,
+        genotype: donor.genotype,
+        contact: donor.phone_number,
+        email: donor.email,
+        status: donor.status
+    }));
 
-	const isPageLoading = requestLoading || isLoading;
-	const isPageError = requestError || isError;
+    const filteredDonors = donors.filter((donor) => donor.status === activeTab);
 
-	const queryClient = useQueryClient();
+    const isPageLoading = requestLoading || isLoading;
+    const isPageError = requestError || isError;
 
-	const toggleMutation = useMutation({
-        // Passing the acceptance ID to confirm the specific donor acceptance
+    const queryClient = useQueryClient();
+
+    const toggleMutation = useMutation({
         mutationFn: ({ acceptance_id }) =>
             confirmDonation({ acceptance_id, token }),
 
         onSuccess: (_, variables) => {
-            // ✅ Track the unique acceptance ID
             setConfirmedRows(prev => new Set(prev).add(variables.acceptance_id)); 
             setActiveRowId(null);
 
@@ -75,84 +78,120 @@ function ViewRequest() {
         },
     });
 
-	const retryMutation = useMutation({
-		mutationFn: () => retryMatching({ requestId: id, token }),
+    const retryMutation = useMutation({
+        mutationFn: () => retryMatching({ requestId: id, token }),
 
-		onSuccess: (data) => {
-			setMatchInsight(data.reason);
-			// 🔥 refresh donors + request
-			queryClient.invalidateQueries(["donors", id]);
-			queryClient.invalidateQueries(["request", id]);
-		},
+        onSuccess: (data) => {
+			setHasExpanded(true);
+			setMatchInsight(data?.message || "Search expanded.");
 
-		onError: (err) => {
-			console.error(err.message);
-		},
-	});
+			const matches = data?.matches || [];
+			setNewMatches(matches);
+			setIsModalOpen(true);
 
-	const request = requestData
-		? {
-			id: requestData.id,
-			bloodGroup: requestData.blood_group,
-			genotype: requestData.genotype,
-			requiredUnits: requestData.required_units,
-			fulfilledUnits: requestData.fulfilled_units,
-			status: requestData.status,
-			createdAt: requestData.created_at,
-		}
-		: null;
+            // refresh donors + request
+            queryClient.invalidateQueries(["donors", id]);
+            queryClient.invalidateQueries(["request", id]);
+        },
+
+        onError: (err) => {
+            console.error(err.message);
+        },
+    });
+
+    const request = requestData
+        ? {
+            id: requestData.id,
+            bloodGroup: requestData.blood_group,
+            genotype: requestData.genotype,
+            requiredUnits: requestData.required_units,
+            fulfilledUnits: requestData.fulfilled_units,
+            status: requestData.status,
+            createdAt: requestData.created_at,
+        }
+        : null;
+
+	const isRequestIncomplete = request && request.fulfilledUnits < request.requiredUnits;
 
   return (
-    <div className="flex-1 bg-gray-50/50 p-6 md:p-8 text-gray-800 font-sans">
+    <div className="flex-1 bg-gray-50/50 p-6 md:p-8 text-gray-800 font-sans relative">
       <div className="max-w-6xl mx-auto">
         {/* HEADER */}
-			<div className="mb-8 flex flex-col gap-4">
-			{/* Back Button */}
-			<button 
-				onClick={() => navigate(-1)} 
-				className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors w-max group"
-			>
-				<div className="p-1.5 rounded-lg group-hover:bg-gray-100">
-					<ChevronLeft size={20} />
-				</div>
-				<span className="text-sm font-medium">Back to Requests</span>
-			</button>
+            <div className="mb-8 flex flex-col gap-4">
+            {/* Back Button */}
+            <button 
+                onClick={() => navigate(-1)} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors w-max group"
+            >
+                <div className="p-1.5 rounded-lg group-hover:bg-gray-100">
+                    <ChevronLeft size={20} />
+                </div>
+                <span className="text-sm font-medium">Back to Requests</span>
+            </button>
 
-			<div className="flex justify-between items-end">
+            <div className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+                        Blood Request Details
+                    </h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Manage and track potential donors for this request.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {matchInsight && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
+                <strong>Matching Insight:</strong> {matchInsight}
+            </div>
+        )}
+		{(isRequestIncomplete && request.status === 'partial') && (
+			<div className="mb-6 flex items-center justify-between bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
 				<div>
-					<h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-						Blood Request Details
-					</h1>
-					<p className="text-sm text-gray-500 mt-1">
-						Manage and track potential donors for this request.
+					<p className="text-sm font-semibold text-gray-800">
+						More donors are still needed
+					</p>
+					<p className="text-xs text-gray-500">
+						{request.fulfilledUnits} of {request.requiredUnits} units fulfilled
 					</p>
 				</div>
-			</div>
-		</div>
 
-		{matchInsight && (
-			<div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
-				<strong>Matching Insight:</strong> {matchInsight}
+				<button
+					onClick={() => retryMutation.mutate()}
+					disabled={retryMutation.isPending}
+					className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+				>
+					{retryMutation.isPending ? (
+						<>
+							<Loader2 size={16} className="animate-spin" />
+							Expanding...
+						</>
+					) : (
+						"Expand Search Radius"
+					)}
+				</button>
 			</div>
-		)}
+			)}
 
         {/* DETAILS CARD */}
-		{!request && !isPageLoading ? (
-		<div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex items-center gap-3 text-amber-700">
-			<AlertCircle size={20} />
-			<p className="font-medium">Request details could not be found. It may have been deleted.</p>
-		</div>
-		) :	(<div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 w-full">
+        {!request && !isPageLoading ? (
+        <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex items-center gap-3 text-amber-700 mb-8">
+            <AlertCircle size={20} />
+            <p className="font-medium">Request details could not be found. It may have been deleted.</p>
+        </div>
+        ) : (
+		<div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
             {[
-				{ label: "Request ID", value: request?.id, highlight: true },
-				{ label: "Blood Group", value: request?.bloodGroup, alert: true },
-				{ label: "Genotype", value: request?.genotype },
-				{ label: "Number of Units", value: request?.requiredUnits },
-				{ label: "Fulfilled Units", value: request?.fulfilledUnits },
-				{ label: "Request Time", value: formatTime(request?.createdAt) },
-				{ label: "Status", value: request?.status, badge: true },
-			].map((item, i) => (
+                { label: "Request ID", value: request?.id, highlight: true },
+                { label: "Blood Group", value: request?.bloodGroup, alert: true },
+                { label: "Genotype", value: request?.genotype },
+                { label: "Number of Units", value: request?.requiredUnits },
+                { label: "Fulfilled Units", value: request?.fulfilledUnits },
+                { label: "Request Time", value: formatTime(request?.createdAt) },
+                { label: "Status", value: request?.status, badge: true },
+            ].map((item, i) => (
               <div key={i} className={`flex flex-col space-y-1 ${item.fullSpan ? "col-span-2 md:col-span-4" : ""}`}>
                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{item.label}</span>
                 {item.badge ? (
@@ -215,7 +254,7 @@ function ViewRequest() {
                 <div className="p-12 text-center text-gray-500 text-sm">No donors found in this category.</div>
               ) : (
                 <table className="w-full text-sm text-left whitespace-nowrap">
-				{activeTab === "accepted" ? (
+                {activeTab === "accepted" ? (
                   <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
                     <tr>
                       <th className="px-6 py-4 font-medium">Donor's name</th>
@@ -224,73 +263,71 @@ function ViewRequest() {
                       <th className="px-6 py-4 font-medium">Action</th>
                     </tr>
                   </thead>
-				) : (
-					<thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
-						<tr>
-							<th className="px-6 py-4 font-medium">Donor's name</th>
-							<th className="px-6 py-4 font-medium">Contact</th>
-							<th className="px-6 py-4 font-medium">Email</th>
-						</tr>
-					</thead>
-					)
-				}
+                ) : (
+                    <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
+                        <tr>
+                            <th className="px-6 py-4 font-medium">Donor's name</th>
+                            <th className="px-6 py-4 font-medium">Contact</th>
+                            <th className="px-6 py-4 font-medium">Email</th>
+                        </tr>
+                    </thead>
+                    )
+                }
                   <tbody className="divide-y divide-gray-100">
                     {activeTab === "accepted" ? 
-						(filteredDonors.map((row) => (
-						<tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
-							<td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
-							<td className="px-6 py-4">
-								<a 
-									href={`tel:${row.contact}`}
-									className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
-									title={`Call ${row.name}`}
-								>
-									<Phone size={14} className="opacity-70" />
-									{row.contact}
-								</a>
-							</td>
-							<td className="px-6 py-4 text-gray-600">{row.email}</td>
-							{/* TOGGLE */}
-							<td className="px-6 py-4 text-center">
-								<button
-									onClick={() => {
-										// ✅ Track the unique acceptance ID in state
-										setActiveRowId(row.id); 
-										// Pass the acceptance ID for confirmation
-										toggleMutation.mutate({ acceptance_id: row.id }); 
-									}}
-									disabled={
-										confirmedRows.has(row.id) || // ✅ Check acceptance ID
-										(toggleMutation.isPending && activeRowId === row.id) // ✅ Check acceptance ID
-									}
-									className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-								>
-									{confirmedRows.has(row.id) // ✅ Check acceptance ID
-										? "Confirmed ✓"
-										: toggleMutation.isPending && activeRowId === row.id // ✅ Check acceptance ID
-										? "Confirming..."
-										: "Confirm Donation"}
-									</button>
-								</td>
-						</tr>
-						))) 
-						:
-						(filteredDonors.map((row) => (
-							<tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
-								<td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
-								<td className="px-6 py-4">
-									<a 
-										href={`tel:${row.contact}`}
-										className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
-										title={`Call ${row.name}`}
-									>
-										<Phone size={14} className="opacity-70" />
-										{row.contact}
-									</a>
-								</td>
-								<td className="px-6 py-4 text-gray-600">{row.email}</td>
-							</tr>
-						)))}
+                        (filteredDonors.map((row) => (
+                        <tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
+                            <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
+                            <td className="px-6 py-4">
+                                <a 
+                                    href={`tel:${row.contact}`}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
+                                    title={`Call ${row.name}`}
+                                >
+                                    <Phone size={14} className="opacity-70" />
+                                    {row.contact}
+                                </a>
+                            </td>
+                            <td className="px-6 py-4 text-gray-600">{row.email}</td>
+                            {/* TOGGLE */}
+                            <td className="px-6 py-4 text-center">
+                                <button
+                                    onClick={() => {
+                                        setActiveRowId(row.id); 
+                                        toggleMutation.mutate({ acceptance_id: row.id }); 
+                                    }}
+                                    disabled={
+                                        confirmedRows.has(row.id) || 
+                                        (toggleMutation.isPending && activeRowId === row.id) 
+                                    }
+                                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                                >
+                                    {confirmedRows.has(row.id) 
+                                        ? "Confirmed ✓"
+                                        : toggleMutation.isPending && activeRowId === row.id 
+                                        ? "Confirming..."
+                                        : "Confirm Donation"}
+                                </button>
+                            </td>
+                        </tr>
+                        ))) 
+                        :
+                        (filteredDonors.map((row) => (
+                            <tr key={row.id} className="hover:bg-gray-50/80 transition-colors">
+                                <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
+                                <td className="px-6 py-4">
+                                    <a 
+                                        href={`tel:${row.contact}`}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-medium text-sm border border-transparent hover:border-blue-200"
+                                        title={`Call ${row.name}`}
+                                    >
+                                        <Phone size={14} className="opacity-70" />
+                                        {row.contact}
+                                    </a>
+                                </td>
+                                <td className="px-6 py-4 text-gray-600">{row.email}</td>
+                            </tr>
+                        )))}
                   </tbody>
                 </table>
               )}
@@ -316,24 +353,115 @@ function ViewRequest() {
           </div>
         ) : (
           /* EMPTY STATE */
-          <div className="flex flex-col items-center justify-center text-center mt-12 mb-12 max-w-md mx-auto bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
-            <div className="bg-red-50 p-5 rounded-full mb-6 ring-8 ring-red-50/50">
-              <X className="text-red-500 w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">No Donors Found Yet</h2>
-            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-              	We are still searching our database. You'll be notified immediately once a matching donor is located in your radius.
-            </p>
-            <button
-				onClick={() => retryMutation.mutate()}
-				disabled={retryMutation.isPending}
-				className="w-full bg-blue-600 text-white px-6 py-3 cursor-pointer rounded-xl font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50"
-			>
-				{retryMutation.isPending ? "Searching..." : "Expand Search Radius"}
-			</button>
+			<div className="flex flex-col items-center justify-center text-center mt-12 mb-12 max-w-md mx-auto bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
+				<div className={`p-5 rounded-full mb-6 ring-8 ${hasExpanded && newMatches.length > 0 ? 'bg-blue-50 ring-blue-50/50' : 'bg-red-50 ring-red-50/50'}`}>
+					{hasExpanded && newMatches.length > 0 ? (
+						<Users className="text-blue-500 w-8 h-8" />
+					) : (
+						<X className="text-red-500 w-8 h-8" />
+					)}
+				</div>
+				
+				<h2 className="text-xl font-bold text-gray-900 mb-2">
+					{hasExpanded && newMatches.length > 0 ? "No donors have accepted the request yet" : "No Donors Found Yet"}
+				</h2>
+
+				<p className="text-gray-500 text-sm mb-8 leading-relaxed">
+					{hasExpanded && newMatches.length > 0
+						? "We've notified potential donors in the area. If you're in a hurry, you can try expanding the search radius even further." 
+						: "We are still searching. You'll be notified immediately once a matching donor is located in your radius."
+					}
+				</p>
+
+				<button
+					onClick={() => retryMutation.mutate()}
+					disabled={retryMutation.isPending}
+					className="w-full bg-blue-600 text-white px-6 py-3 cursor-pointer rounded-xl font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+				>
+					{retryMutation.isPending ? (
+						<>
+							<Loader2 size={18} className="animate-spin" />
+							Expanding Search...
+						</>
+					) : (
+						hasExpanded ? "Expand Radius Further" : "Expand Search Radius"
+					)}
+				</button>
+				
+				{hasExpanded && !retryMutation.isPending && (
+					<p className="mt-4 text-xs text-gray-400 italic">
+						Last search expansion successful. Waiting for responses...
+					</p>
+				)}
+			</div>
+			)}
+	  	</div>
+
+      {/* Expanded Search Success Modal */}
+      {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200">
+                  
+                  {/* Header */}
+                  <div className="flex flex-col items-center text-center mb-6">
+						<div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+							<Users className="w-8 h-8 text-blue-500" />
+						</div>
+                      	<h3 className="text-2xl font-bold text-[#0A0A0A]">
+						{newMatches.length > 0 
+							? "Available Donors Found" 
+							: "No Donors Found"
+						}
+						</h3>
+                      <p className="text-[#434248] text-sm mt-3 leading-relaxed">
+						{newMatches.length > 0
+							? "We've found potential donors based on the expanded search. They only become visible to you once they accept the request, but you can view their anonymized profiles below."
+							: "Even after expanding the search, we couldn't find any new donors. We recommend trying again later or expanding the search radius further."
+						}
+                      </p>
+                  </div>
+
+                  {/* Donors List (Identity hidden) */}
+                  <div className="space-y-3 mb-8 max-h-[200px] overflow-y-auto pr-1">
+                      {newMatches.length > 0 ? (
+                          newMatches.map((donor, index) => (
+                              <div key={donor.donor_id || index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                  <div className="flex items-center gap-3 w-full">
+                                      <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                                          {request?.bloodGroup || 'Blood'}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                          <h4 className="font-semibold text-[#1C1C1C] text-sm">Anonymous Donor</h4>
+                                          <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-gray-500 mt-0.5">
+                                              <span className="flex items-center gap-1 shrink-0">
+                                                  <Activity className="w-3 h-3" /> {request?.genotype || 'Genotype'} Match
+                                              </span>
+                                              <span className="hidden sm:inline text-gray-300">•</span>
+                                              <span className="flex items-center gap-1 truncate">
+                                                  <MapPin className="w-3 h-3 shrink-0" /> 
+                                                  {donor.distance_km}km away 
+                                                  <span className="text-gray-400 italic">({donor.reason})</span>
+                                              </span>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))
+                      ) : (
+                          <p className="text-center text-sm text-gray-500 py-4">No Matches found</p>
+                      )}
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                      onClick={() => setIsModalOpen(false)}
+                      className="w-full bg-[#3B82F6] text-white font-semibold rounded-full py-3.5 hover:bg-blue-600 transition-colors shadow-sm"
+                  >
+                      {newMatches.length > 0 ? "Great! I'll wait for them to accept" : "Okay, I'll try expanding again later"}
+                  </button>
+              </div>
           </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

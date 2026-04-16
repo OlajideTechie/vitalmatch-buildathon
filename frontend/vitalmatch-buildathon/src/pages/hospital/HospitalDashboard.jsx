@@ -62,7 +62,7 @@ function HospitalDashboard() {
         },
     ];
 
-    const filteredActiveRequests = requestsData?.filter(req => req.status === 'open') || [];
+    const filteredActiveRequests = requestsData?.filter(req => req.status === 'open' || req.status === 'partial') || [];
     const activeRequests = filteredActiveRequests.map((req) => ({
         id: req.id,
         bloodGroup: req.blood_group,
@@ -123,12 +123,12 @@ function HospitalDashboard() {
                                 <div className="pt-2">
                                     <div className="flex justify-between items-center mb-1">
                                         <span className="text-gray-500 text-sm">Progress</span>
-                                        <span className="font-semibold text-gray-900 text-sm">{req.progressPercentage}%</span>
+                                        <span className="font-semibold text-gray-900 text-sm">{req.fulfilledUnits / req.requiredUnits * 100 || 0}%</span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2">
                                         <div 
                                             className="bg-[#3B82F6] h-2 rounded-full transition-all duration-500" 
-                                            style={{ width: `${req.progressPercentage}%` }}
+                                            style={{ width: `${req.fulfilledUnits / req.requiredUnits * 100 || 0}%` }}
                                         ></div>
                                     </div>
                                 </div>
