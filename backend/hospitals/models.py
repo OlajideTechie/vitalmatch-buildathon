@@ -26,4 +26,4 @@ class HospitalProfile(models.Model):
     is_verified = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.name
+        return self.full_name

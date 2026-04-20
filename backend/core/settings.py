@@ -49,7 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # must be at the top
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -218,25 +218,51 @@ LOGGING = {
     },
     'loggers': {
         'django': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': True},
-        'hospitals': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
+        'hospitals': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'donors': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'bloodrequest': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'notifications': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'services': {'handlers': ['console', 'file', 'error_file'], 'level': 'INFO', 'propagate': False},
     },
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    origin for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if origin
+    origin.strip()
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,https://vitalmatch-buildathon.vercel.app'
+    ).split(',')
+    if origin.strip()
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOW_HEADERS = [
-    "accept", "accept-encoding", "authorization", "content-type",
-    "origin", "x-csrftoken", "x-requested-with",
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "origin",
+    "x-csrftoken",
+    "x-requested-with",
 ]
-CORS_ALLOW_CREDENTIALS = False
+
+APPEND_SLASH = False
 
 # Secure cookies (disable for local dev)
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
+# CSRF trusted origins for API forms (if ever needed)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'http://localhost:5173,https://vitalmatch-buildathon.vercel.app'
+    ).split(',')
+    if origin.strip()
+]
 
 # Interswitch API Settings
 INTERSWITCH_AUTH_URL = os.getenv("INTERSWITCH_AUTH_URL")

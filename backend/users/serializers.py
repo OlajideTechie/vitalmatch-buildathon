@@ -31,6 +31,7 @@ class DonorProfileSerializer(serializers.ModelSerializer):
             'blood_group',
             'genotype',
             'is_available',
+            'is_verified',
             'reward_points',
             'successful_donation',
             'location',

@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import CreateRequestView, RetryMatchView, DonorAcceptRequestView
+from .views import CreateRequestView, RetryMatchView, DonorAcceptRequestView, UpdateBloodRequestView
 
 urlpatterns = [
     path('hospital/create-request', CreateRequestView.as_view(), name='create-request'),
+    path('hospital/blood-requests/<uuid:request_id>/update', UpdateBloodRequestView.as_view(), name='update-blood-request'),
     path(
         "hospital/blood-requests/<uuid:request_id>/retry-matching",
         RetryMatchView.as_view(),

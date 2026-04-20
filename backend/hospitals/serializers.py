@@ -67,25 +67,31 @@ class HospitalRegisterSerializer(serializers.Serializer):
             role='hospital'
         )
 
-          # Initialize Interswitch client
-        client = InterswitchClient()
+        # Attempt CAC verification via Interswitch
+        is_verified = False
         api_message = "CAC verification attempted"
 
         try:
             client = InterswitchClient()
             token = client.authenticate()
-            
+
             # Use sandbox test name for companyName
             company_name = settings.INTERSWITCH_SANDBOX_TEST_NAME
 
             result = client.verify_cac(token, company_name)
             logger.info(f"Interswitch CAC verification response: {result}")
 
+            # Only mark verified when the API confirms success
+            if result.get("status") == "success" and result.get("is_valid"):
+                is_verified = True
+                api_message = "CAC verification successful"
+            else:
+                api_message = "CAC verification returned but could not confirm validity"
 
         except Exception as exc:
             api_message = f"CAC verification attempt failed: {str(exc)}"
 
-        # Create hospital profile — mark verified regardless of API response
+        # Create hospital profile with actual verification result
         HospitalProfile.objects.create(
             user=user,
             full_name=validated_data['full_name'],
@@ -94,11 +100,10 @@ class HospitalRegisterSerializer(serializers.Serializer):
             hospital_type=validated_data['hospital_type'],
             latitude=validated_data['latitude'],
             longitude=validated_data['longitude'],
-            is_verified=True
+            is_verified=is_verified
         )
-        
-         # Add API message to response
-        user.api_message = api_message 
+
+        user.api_message = api_message
 
         return user
 
